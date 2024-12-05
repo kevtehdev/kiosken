@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
-import { OnslipService } from '../services/onslip.service';
-import { CustomButtonMap, CustomProduct } from '../types';
+import { Request, Response } from "express";
+import { OnslipService } from "../services/onslip.service";
+import { ButtonMap, Product } from "../types";
 
 export class ButtonController {
     private onslipService: OnslipService;
@@ -12,15 +12,20 @@ export class ButtonController {
     getButtonMaps = async (req: Request, res: Response) => {
         try {
             const buttonMaps = await this.onslipService.listButtonMaps();
+            console.log(buttonMaps);
+
             const tabletButtons = buttonMaps.filter(
-                (map: CustomButtonMap) =>
-                    map.type === 'tablet-buttons' &&
+                (map: ButtonMap) =>
+                    map.type === "tablet-buttons" &&
                     map.buttons &&
                     map.buttons.length > 0
             );
             res.json(tabletButtons);
         } catch (error) {
-            res.status(500).json({ error: 'Kunde inte hämta knappar' });
+            console.log(error);
+            res.status(500).json({
+                error: "Kunde inte hämta knappar",
+            });
         }
     };
 
@@ -28,29 +33,32 @@ export class ButtonController {
         try {
             const [buttonMapsResponse, productsResponse] = await Promise.all([
                 this.onslipService.listButtonMaps(),
-                this.onslipService.listProducts()
+                this.onslipService.listProducts(),
             ]);
 
             const tabletButtons = buttonMapsResponse.filter(
-                (map: CustomButtonMap) =>
-                    map.type === 'tablet-buttons' &&
+                (map: ButtonMap) =>
+                    map.type === "tablet-buttons" &&
                     map.buttons &&
                     map.buttons.length > 0
             );
 
-            const productsMap = productsResponse.reduce((acc: { [key: number]: CustomProduct }, product: CustomProduct) => {
-                if (product.id) {
-                    acc[product.id] = product;
-                }
-                return acc;
-            }, {});
+            const productsMap = productsResponse.reduce(
+                (acc: { [key: number]: Product }, product: Product) => {
+                    if (product.id) {
+                        acc[product.id] = product;
+                    }
+                    return acc;
+                },
+                {}
+            );
 
             res.json({
                 buttonMaps: tabletButtons,
-                products: productsMap
+                products: productsMap,
             });
         } catch (error) {
-            res.status(500).json({ error: 'Kunde inte hämta API-data' });
+            res.status(500).json({ error: "Kunde inte hämta API-data" });
         }
     };
 }

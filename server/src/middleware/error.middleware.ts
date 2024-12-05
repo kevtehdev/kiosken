@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 
 export interface AppError extends Error {
     status?: number;
@@ -13,7 +13,7 @@ export const errorHandler = (
     console.error(err.stack);
 
     res.status(err.status || 500).json({
-        error: err.message || 'Något gick fel!',
-        status: err.status || 500
+        error: err.message || "Något gick fel!",
+        status: err.status || 500,
     });
 };
