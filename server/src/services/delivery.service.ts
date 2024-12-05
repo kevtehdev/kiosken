@@ -1,6 +1,6 @@
-import { API } from '@onslip/onslip-360-web-api';
-import { OnslipService } from './onslip.service';
-import { OnslipCustomer } from '../types';
+import { API } from "@onslip/onslip-360-web-api";
+import { OnslipService } from "./onslip.service";
+import { OnslipCustomer } from "../types";
 
 export interface DeliveryDetails {
     orderId: string;
@@ -14,7 +14,7 @@ export interface DeliveryDetails {
 
 export class DeliveryService {
     private onslipService: OnslipService;
-    private DELIVERY_STAFF_ID = 6;
+    private DELIVERY_STAFF_ID = 1;
 
     constructor() {
         this.onslipService = new OnslipService();
@@ -22,12 +22,18 @@ export class DeliveryService {
 
     async getDeliveryStaff(): Promise<OnslipCustomer | null> {
         try {
-            const staff = await this.onslipService.getCustomer(this.DELIVERY_STAFF_ID);
+            const staff = await this.onslipService.getCustomer(
+                this.DELIVERY_STAFF_ID
+            );
             if (staff) {
-                console.log(`Tilldelad leveranspersonal: ${staff.name} (Employee ID: ${this.DELIVERY_STAFF_ID})`);
+                console.log(
+                    `Tilldelad leveranspersonal: ${staff.name} (Employee ID: ${this.DELIVERY_STAFF_ID})`
+                );
                 return staff;
             }
-            console.error(`Leveranspersonal (ID ${this.DELIVERY_STAFF_ID}) hittades inte`);
+            console.error(
+                `Leveranspersonal (ID ${this.DELIVERY_STAFF_ID}) hittades inte`
+            );
             return null;
         } catch (error) {
             console.error("Fel vid hämtning av leveranspersonal:", error);
@@ -38,7 +44,7 @@ export class DeliveryService {
     createDeliveryTags(resourceId: number): string[] {
         return [
             `delivery_desk:${resourceId}`,
-            `delivery_staff:${this.DELIVERY_STAFF_ID}`
+            `delivery_staff:${this.DELIVERY_STAFF_ID}`,
         ];
     }
 
@@ -50,23 +56,27 @@ Beställare: ${details.customerName}
 Leveransplats: ${details.deliveryLocation}
 
 Produkter:
-${details.items.join('\n')}
+${details.items.join("\n")}
 
 Totalt belopp: ${details.totalAmount} kr
 `;
     }
 
-    async sendEmail(recipientEmail: string, subject: string, message: string): Promise<void> {
+    async sendEmail(
+        recipientEmail: string,
+        subject: string,
+        message: string
+    ): Promise<void> {
         try {
             const command: API.Command = {
-                name: 'send-email',
+                name: "send-email",
                 args: [
-                    'noreply@onslip.com',
+                    "noreply@onslip.com",
                     recipientEmail,
                     subject,
-                    'text/plain',
-                    message
-                ]
+                    "text/plain",
+                    message,
+                ],
             };
 
             await this.onslipService.doCommand(command);
@@ -77,7 +87,9 @@ Totalt belopp: ${details.totalAmount} kr
         }
     }
 
-    async sendCustomerOrderConfirmation(details: DeliveryDetails): Promise<void> {
+    async sendCustomerOrderConfirmation(
+        details: DeliveryDetails
+    ): Promise<void> {
         await this.sendEmail(
             details.customerEmail,
             `Orderbekräftelse: ${details.orderName}`,
@@ -93,10 +105,14 @@ Teamet på Onslip`
         );
     }
 
-    async sendDeliveryStaffNotification(details: DeliveryDetails): Promise<void> {
+    async sendDeliveryStaffNotification(
+        details: DeliveryDetails
+    ): Promise<void> {
         const staff = await this.getDeliveryStaff();
         if (!staff?.email) {
-            throw new Error("Kunde inte hitta e-postadress för leveranspersonal");
+            throw new Error(
+                "Kunde inte hitta e-postadress för leveranspersonal"
+            );
         }
 
         await this.sendEmail(
@@ -114,7 +130,10 @@ Teamet på Onslip`
         );
     }
 
-    async sendPaymentConfirmation(details: DeliveryDetails, transactionId: string): Promise<void> {
+    async sendPaymentConfirmation(
+        details: DeliveryDetails,
+        transactionId: string
+    ): Promise<void> {
         await this.sendEmail(
             details.customerEmail,
             `Betalningsbekräftelse: ${details.orderName}`,

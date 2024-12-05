@@ -31,3 +31,6 @@ yarn-error.log*
 
 # Optional eslint cache
 .eslintcache
+
+server/combined.log
+*.log
