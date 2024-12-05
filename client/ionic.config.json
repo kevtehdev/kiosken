@@ -1,0 +1,7 @@
+{
+  "name": "onslip-kiosk",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react-vite"
+}

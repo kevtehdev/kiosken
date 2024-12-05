@@ -1,0 +1,31 @@
+.customer-select-container {
+  padding: var(--spacing-sm) 0;
+}
+
+.modern-select {
+  width: 100%;
+  --padding-start: var(--spacing-md);
+  --padding-end: 2.5rem;
+  --padding-top: 14px;
+  --padding-bottom: 14px;
+  --border-radius: 12px;
+  --background: var(--gray-50);
+  --border-width: 1px;
+  --border-color: var(--gray-200);
+  --placeholder-color: var(--gray-400);
+}
+
+.modern-select::part(icon) {
+  margin-right: 0.5rem;
+  position: absolute;
+  right: 0;
+}
+
+.customer-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  color: var(--gray-400);
+}

@@ -1,0 +1,91 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap");
+
+:root {
+    /* Varumärkesfärger */
+    --brand-green: #a5d666;
+    --white: #ffffff;
+    --black: #000000;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --black-200 : #1a1a1a;
+
+    /* Typografi */
+    --font-primary: "Space Grotesk", -apple-system, system-ui, sans-serif;
+
+    /* Ionic Typsnitt Överskrivningar */
+    --ion-font-family: var(--font-primary);
+    --ion-default-font: var(--font-primary);
+
+    /* Ionic Temafärger */
+    --ion-background-color: var(--gray-200);
+    --ion-background-color-rgb: 255, 255, 255;
+    --ion-text-color: var(--black);
+    --ion-text-color-rgb: 0, 0, 0;
+    --ion-text-color-medium: rgba(0, 0, 0, 0.6);
+
+    /* Komponentfärger */
+    --ion-toolbar-background: var(--black);
+    --ion-tab-bar-background: var(--black);
+    --ion-card-background: var(--white);
+    --ion-item-background: var(--white);
+
+    /* Primära Färginställningar */
+    --ion-color-primary: var(--brand-green);
+    --ion-color-primary-rgb: 165, 214, 102;
+    --ion-color-primary-contrast: var(--black);
+    --ion-color-primary-contrast-rgb: 0, 0, 0;
+    --ion-color-primary-shade: #8fb859;
+    --ion-color-primary-tint: #b4dd7c;
+
+    /* Knappfärger */
+    --button-background: var(--black);
+    --button-text: var(--brand-green);
+    --button-hover: #1a1a1a;
+
+    /* Layoutkonstanter */
+    --nav-height: 56px;
+    --content-max-width: 1200px; /* Justerad för smalare innehåll */
+
+    /* Avståndsskala */
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 1.5rem;
+    --spacing-lg: 2rem;
+    --spacing-xl: 3rem;
+}
+
+/* Globala stilar */
+body {
+    font-family: var(--font-primary);
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.02em;
+}
+
+/* Tvinga Ionic-komponenter att använda vårt typsnitt */
+ion-content,
+ion-item,
+ion-label,
+ion-button,
+ion-card,
+ion-card-title,
+ion-card-content,
+ion-header,
+ion-toolbar,
+ion-title,
+ion-tab-bar,
+ion-tab-button {
+    font-family: var(--font-primary) !important;
+}
+
+/* Säkerställ att rubriker använder vårt typsnitt */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-primary);
+}

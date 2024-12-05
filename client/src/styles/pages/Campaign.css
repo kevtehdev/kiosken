@@ -1,0 +1,181 @@
+.container {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--spacing-md);
+}
+
+/* Campaign Banner */
+.campaign-banner {
+  background: var(--black);
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+}
+
+.campaign-banner-content {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  color: var(--white);
+}
+
+.campaign-banner-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.campaign-banner-text {
+  flex-grow: 1;
+}
+
+.campaign-banner-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.campaign-banner-title h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.campaign-banner-text p {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 0.9rem;
+}
+
+/* Campaign Section */
+.campaign-section {
+  margin-bottom: var(--spacing-xl);
+  background: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.campaign-products {
+  padding: var(--spacing-md);
+}
+
+/* Product Grid */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+}
+
+/* Page Header */
+.page-header {
+  margin-bottom: var(--spacing-lg);
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.page-title h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--ion-text-color);
+}
+
+.page-title ion-icon {
+  font-size: 24px;
+  color: var(--ion-color-primary);
+}
+
+/* Loading and Empty States */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: var(--spacing-md);
+  color: var(--ion-text-color-medium);
+}
+
+.loading-state ion-spinner {
+  --color: var(--ion-color-primary);
+}
+
+.empty-state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  text-align: center;
+  padding: var(--spacing-xl);
+  background: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  color: var(--ion-color-medium);
+  margin-bottom: var(--spacing-md);
+}
+
+.empty-state-container h2 {
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--ion-text-color);
+}
+
+.empty-state-container p {
+  margin: 0;
+  color: var(--ion-text-color-medium);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .product-grid {
+      grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+      padding: var(--spacing-sm);
+  }
+
+  .campaign-banner-content {
+      padding: var(--spacing-sm);
+  }
+
+  .campaign-products {
+      padding: var(--spacing-sm);
+  }
+
+  .page-title h1 {
+      font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .product-grid {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-sm);
+  }
+
+  .campaign-banner-text h3 {
+      font-size: 1.1rem;
+  }
+
+  .campaign-banner-text p {
+      font-size: 0.85rem;
+  }
+
+  .page-title h1 {
+      font-size: 1.2rem;
+  }
+}

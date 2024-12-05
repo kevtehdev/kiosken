@@ -1,0 +1,23 @@
+.modern-tab-bar {
+    --background: #000000;
+    border: none;
+    margin-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .tab-button {
+    --color: rgb(255, 255, 255);
+    --color-selected: var(--brand-green);
+  }
+  
+  .tab-button[aria-selected="true"] {
+    --color: var(--brand-green);
+  }
+  
+  .tab-button ion-icon {
+    font-size: 24px;
+  }
+  
+  .tab-button ion-label {
+    font-size: 12px;
+    font-weight: 500;
+  }
