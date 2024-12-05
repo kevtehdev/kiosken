@@ -4,7 +4,6 @@ import {
     AbortController,
 } from "@onslip/onslip-360-node-api";
 import pkg from "../../package.json";
-import { onslipConfig } from "../config/onslip.config";
 import { Resource } from "../types";
 import { env } from "../config/enviroment";
 
