@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { OnslipService } from '../services/onslip.service';
 import { Campaign, ProductCampaign, CampaignRule } from '../types';
-import { API } from '@onslip/onslip-360-web-api';
+import { API } from '@onslip/onslip-360-node-api';
 
 export class CampaignController {
     private onslipService: OnslipService;

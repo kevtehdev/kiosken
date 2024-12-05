@@ -1,6 +1,7 @@
 import { IonButton, IonItem, IonIcon, IonLabel, IonNote } from "@ionic/react";
 import { add, remove, trash } from "ionicons/icons";
-import { useCart, type CartItem } from "../../contexts/cartContext";
+import { useCart } from "../../contexts/cartContext";
+import { CartItem } from "../../types";
 import { useEffect, useState } from "react";
 import { api } from "../../services/api";
 import "../../styles/components/CartItem.css";

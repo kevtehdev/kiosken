@@ -1,4 +1,4 @@
-import { API } from "@onslip/onslip-360-web-api";
+import { API } from "@onslip/onslip-360-node-api";
 import { OnslipService } from "./onslip.service";
 import { OnslipCustomer } from "../types";
 

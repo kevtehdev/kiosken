@@ -1,4 +1,4 @@
-import { API } from '@onslip/onslip-360-web-api';
+import { API } from '@onslip/onslip-360-node-api';
 
 export type CampaignType = API.Campaign.Type;
 

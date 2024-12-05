@@ -21,6 +21,7 @@ import { useCart } from "../../contexts/cartContext";
 import { useApi } from "../../contexts/apiContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "../../services/api";
+import { Product } from "../../types";
 import "../../styles/components/ProductCard.css";
 
 interface ProductCardProps {
@@ -30,7 +31,7 @@ interface ProductCardProps {
 
 export const ProductCard: React.FC<ProductCardProps> = ({ productId, index }) => {
     const { state: { products, loading } } = useApi();
-    const product = productId ? products[productId] : null;
+    const product = productId ? products[productId] as Product : null;
     const { dispatch } = useCart();
     const [campaignDisplay, setCampaignDisplay] = useState<number | string>();
     const [reducedPrice, setReducedPrice] = useState<number>();
@@ -76,14 +77,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ productId, index }) =>
     }
 
     const handleAddToCart = () => {
+        if (!product.id || !product.price) return;
+
         dispatch({
             type: "ADD_ITEM",
             payload: {
                 "product-name": product.name,
-                product: product.id!,
+                product: product.id,
                 quantity: 1,
                 price: product.price,
-                type: "goods"
+                type: "goods",
             },
         });
 
@@ -104,7 +107,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ productId, index }) =>
             >
                 <div className="image-container">
                     <IonImg
-                        src={product.description}
+                        src={product.description || ''}
                         alt={product.name}
                         className="product-image"
                     />

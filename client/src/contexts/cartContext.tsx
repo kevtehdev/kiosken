@@ -1,11 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from "react";
-
-export interface CartItem {
-    product: number;
-    'product-name': string;
-    quantity: number;
-    price?: number;
-}
+import { CartItem } from "../types";
 
 interface CartState {
     items: CartItem[];
@@ -82,4 +76,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     );
 };
 
-export const useCart = () => useContext(CartContext);
+export const useCart = () => {
+    const context = useContext(CartContext);
+    if (!context) {
+        throw new Error("useCart must be used within a CartProvider");
+    }
+    return context;
+};
