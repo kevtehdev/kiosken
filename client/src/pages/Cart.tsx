@@ -35,7 +35,9 @@ interface DeliveryDetails {
 }
 
 export default function Cart() {
-    const [deliveryLocation, setDeliveryLocation] = useState<Customer | undefined>();
+    const [deliveryLocation, setDeliveryLocation] = useState<
+        Customer | undefined
+    >();
     const [resources, setResources] = useState<any[]>([]);
     const { state, dispatch } = useCart();
     const [presentToast] = useIonToast();
@@ -64,20 +66,23 @@ export default function Cart() {
     useEffect(() => {
         const calculateTotals = async () => {
             try {
-                let totalWithoutDiscount = state.items.reduce((sum, item) => 
-                    sum + (item.price || 0) * item.quantity, 0
+                let totalWithoutDiscount = state.items.reduce(
+                    (sum, item) => sum + (item.price || 0) * item.quantity,
+                    0
                 );
 
                 let discountedTotal = totalWithoutDiscount;
-                
+
                 for (const item of state.items) {
                     const response = await api.calculateDiscount({
                         originalPrice: (item.price || 0) * item.quantity,
-                        campaign: { productId: item.product }
+                        campaign: { productId: item.product },
                     });
-                    
+
                     if (response.discountedPrice) {
-                        discountedTotal -= ((item.price || 0) * item.quantity) - response.discountedPrice;
+                        discountedTotal -=
+                            (item.price || 0) * item.quantity -
+                            response.discountedPrice;
                     }
                 }
 
@@ -128,7 +133,17 @@ export default function Cart() {
                 items: state.items,
                 deliveryDetails,
                 customerId: deliveryLocation.id,
-                totalAmount: total
+                totalAmount: total,
+                order: {
+                    location: 1,
+                    state: "requested",
+                    name: orderName,
+                    items: state.items,
+                    owner: deliveryLocation.id,
+                    type: "take-out",
+                    "order-reference": orderReference,
+                    description: `Leveransplats: ${deliveryLocation.name} | Levereras av: ID 6`,
+                },
             });
 
             dispatch({ type: "CLEAR_CART" });
@@ -159,7 +174,9 @@ export default function Cart() {
                     {/* Leveransplats-sektion */}
                     <section className="cart-section">
                         <div className="cart-section-header">
-                            <h2 className="section-title">Välj leveransplats</h2>
+                            <h2 className="section-title">
+                                Välj leveransplats
+                            </h2>
                         </div>
                         <div className="cart-section-content">
                             <UserList onCustomerSelect={setDeliveryLocation} />
@@ -191,7 +208,11 @@ export default function Cart() {
                                             <div className="cart-total-container">
                                                 {totalDiscount > 0 && (
                                                     <span className="cart-total-discount">
-                                                        -{totalDiscount.toFixed(2)} kr
+                                                        -
+                                                        {totalDiscount.toFixed(
+                                                            2
+                                                        )}{" "}
+                                                        kr
                                                     </span>
                                                 )}
                                                 <span className="cart-total-amount">
@@ -211,7 +232,8 @@ export default function Cart() {
                                         Din varukorg är tom
                                     </h3>
                                     <p className="empty-cart-subtext">
-                                        Lägg till produkter för att komma igång med din beställning
+                                        Lägg till produkter för att komma igång
+                                        med din beställning
                                     </p>
                                 </div>
                             )}
@@ -234,7 +256,8 @@ export default function Cart() {
                                             className="step-icon"
                                         />
                                         <span>
-                                            Din beställning skickas direkt till vår dedikerade leveranspersonal
+                                            Din beställning skickas direkt till
+                                            vår dedikerade leveranspersonal
                                         </span>
                                     </li>
                                     <li className="delivery-step">
@@ -243,7 +266,8 @@ export default function Cart() {
                                             className="step-icon"
                                         />
                                         <span>
-                                            Du får en orderbekräftelse via e-post
+                                            Du får en orderbekräftelse via
+                                            e-post
                                         </span>
                                     </li>
                                     <li className="delivery-step">
@@ -261,7 +285,8 @@ export default function Cart() {
                                             className="step-icon"
                                         />
                                         <span>
-                                            Kvitto skickas till din e-post efter betalning
+                                            Kvitto skickas till din e-post efter
+                                            betalning
                                         </span>
                                     </li>
                                 </ul>
