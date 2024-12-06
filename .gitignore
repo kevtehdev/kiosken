@@ -34,3 +34,4 @@ yarn-error.log*
 
 server/combined.log
 *.log
+server/error.log

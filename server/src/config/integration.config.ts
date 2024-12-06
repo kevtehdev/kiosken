@@ -1,30 +1,37 @@
 import { API } from "@onslip/onslip-360-node-api";
 
-export const integrationConfig: { integration: API.Integration } = {
+export const integrationConfig: {
+    integration: API.Integration;
+} = {
     integration: {
-        alias: "kiosk",
-        name: "Kiosken Integration",
+        alias: "kiosk_2",
+        name: "Kiosken Integration 2",
         type: "oauth",
         description: "Integration för Kiosken-applikationen",
         author: "Kevin Johnson",
         email: "kevtehdev@dev201480",
         "web-address": "http://localhost:5173",
 
-        categories: [
-            "orders",
-            "sales",
-            "payments",
-        ] as API.StatusEvent.Category[],
+        categories: ["orders", "sales", "payments", "stock-balances"],
 
-        permissions: [] as API.Permission[],
+        permissions: [
+            "add-external-records",
+            "use-access-tokens",
+            "show-products",
+            "show-product-groups",
+            "show-button-maps",
+            "show-campaigns",
+            "show-customers",
+            "show-resources",
+            "show-integrations",
+            "show-locations",
+            "show-orders",
+        ],
 
         // Features måste vara tomma eller innehålla bara de features som är explicit definierade i API:et
-        features: [] as API.CompanyFeature.Flag[],
+        features: ["campaigns", "stock-balances", "external-journal"],
 
-        confinements: [
-            "authorization",
-            "location",
-        ] as API.Integration.Confinement[],
+        confinements: ["location"],
 
         "oauth-redirect-uris": ["http://localhost:3000/api/oauth/callback"],
     },

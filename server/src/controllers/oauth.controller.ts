@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import { OnslipService } from "../services/onslip.service";
 import { env } from "../config/environment";
 import { logger } from "../utils/logger";
-import { integrationConfig } from "../config/integration.config";
 
 export class OAuthController {
     private onslipService: OnslipService;
@@ -74,10 +73,10 @@ export class OAuthController {
                 oauthSession.codeVerifier
             );
 
+            console.log("tokenRes", tokenResponse);
+
             // Verifiera att token fungerar
-            const isValid = await this.onslipService.verifyToken(
-                tokenResponse.access_token
-            );
+            const isValid = await this.onslipService.verifyToken(tokenResponse);
             if (!isValid) {
                 throw new Error("Erhållen token är ogiltig");
             }

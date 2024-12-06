@@ -11,6 +11,7 @@ export class CustomerController {
     getCustomers = async (req: Request, res: Response) => {
         try {
             const customers = await this.onslipService.listCustomers();
+
             res.json(customers);
         } catch (error) {
             res.status(500).json({ error: "Kunde inte hämta användare" });
