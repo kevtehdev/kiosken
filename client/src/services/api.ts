@@ -12,6 +12,7 @@ interface PaymentRequest {
     deliveryDetails: any;
     customerId: number;
     totalAmount: number;
+    order: any;
 }
 
 export const api = {

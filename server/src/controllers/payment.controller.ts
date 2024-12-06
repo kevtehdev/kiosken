@@ -1,16 +1,19 @@
 import { Request, Response } from "express";
 import PaymentService from "../services/payment.service";
+import { OnslipService } from "../services/onslip.service";
 
 export class PaymentController {
     private paymentService: PaymentService;
+    private onslipService: OnslipService;
 
     constructor() {
         this.paymentService = new PaymentService();
+        this.onslipService = new OnslipService();
     }
 
     processPayment = async (req: Request, res: Response) => {
         try {
-            const { deliveryDetails } = req.body;
+            const { deliveryDetails, order } = req.body;
 
             const amount = deliveryDetails.totalAmount;
             const orderId = deliveryDetails.orderId;
@@ -20,6 +23,8 @@ export class PaymentController {
                     .status(400)
                     .json({ error: "Ogiltig betalningsinformation" });
             }
+
+            await this.onslipService.addOrder(order);
 
             const paymentStatus = await this.paymentService.processPayment(
                 amount,

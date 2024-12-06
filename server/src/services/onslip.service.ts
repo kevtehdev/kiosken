@@ -54,4 +54,8 @@ export class OnslipService {
     async doCommand(command: API.Command) {
         return await this.api.doCommand(command);
     }
+
+    async addOrder(order: API.Order) {
+        return await this.api.addOrder(order);
+    }
 }
