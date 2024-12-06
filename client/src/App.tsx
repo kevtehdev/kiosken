@@ -30,6 +30,7 @@ import Home from "./pages/Home";
 import TabPage from "./pages/TabPage";
 import Cart from "./pages/Cart";
 import Campaign from "./pages/Campaign";
+import Config from "./pages/Config";
 
 setupIonicReact();
 
@@ -44,6 +45,7 @@ const TabsContainer: React.FC = () => {
                 <Route exact path="/tabs/:id" component={TabPage} />
                 <Route exact path="/cart" component={Cart} />
                 <Route exact path="/campaigns" component={Campaign} />
+                <Route exact path="/config" component={Config} />
             </IonRouterOutlet>
             <TabBar buttonMaps={buttonMaps} />
         </IonTabs>
@@ -57,7 +59,9 @@ const App: React.FC = () => {
                 <ApiProvider>
                     <CustomerProvider>
                         <IonReactRouter>
-                            <TabsContainer />
+                            <IonRouterOutlet>
+                            <Route path="/" render={() => <TabsContainer />} />
+                            </IonRouterOutlet>
                         </IonReactRouter>
                     </CustomerProvider>
                 </ApiProvider>

@@ -17,3 +17,15 @@ export const validatePaymentRequest = (
 
     next();
 };
+
+export const validateSession = (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): void => {
+    if (!req.session) {
+        res.status(500).json({ error: 'Session är inte konfigurerad' });
+        return;
+    }
+    next();
+};
