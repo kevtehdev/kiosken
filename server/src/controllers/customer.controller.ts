@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
-import { OnslipService } from '../services/onslip.service';
+import { Request, Response } from "express";
+import { OnslipService } from "../services/onslip.service";
 
-export class UserController {
+export class CustomerController {
     private onslipService: OnslipService;
 
     constructor() {
@@ -13,7 +13,7 @@ export class UserController {
             const customers = await this.onslipService.listCustomers();
             res.json(customers);
         } catch (error) {
-            res.status(500).json({ error: 'Kunde inte hämta användare' });
+            res.status(500).json({ error: "Kunde inte hämta användare" });
         }
     };
 
@@ -24,10 +24,10 @@ export class UserController {
             if (customer) {
                 res.json(customer);
             } else {
-                res.status(404).json({ error: 'Användare hittades inte' });
+                res.status(404).json({ error: "Användare hittades inte" });
             }
         } catch (error) {
-            res.status(500).json({ error: 'Kunde inte hämta användare' });
+            res.status(500).json({ error: "Kunde inte hämta användare" });
         }
     };
 }
