@@ -12,7 +12,7 @@ import campaignRoutes from "./routes/campaign.routes";
 import deliveryRoutes from "./routes/delivery.routes";
 import paymentRoutes from "./routes/payment.routes";
 import resourceRoutes from "./routes/resource.routes";
-import userRoutes from "./routes/user.routes";
+import customerRoutes from "./routes/customer.routes";
 
 const app = express();
 
@@ -33,7 +33,7 @@ app.use("/api/campaigns", campaignRoutes);
 app.use("/api/delivery", deliveryRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/resources", resourceRoutes);
-app.use("/api/users", userRoutes);
+app.use("/api/customers", customerRoutes);
 
 // Error handling
 app.use(errorHandler);
