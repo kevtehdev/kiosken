@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import {
     IonPage,
     IonContent,
-    IonButton,
     IonIcon,
+    IonButton,
     IonSpinner,
     useIonToast,
 } from "@ionic/react";
@@ -11,10 +11,12 @@ import { settingsOutline, checkmarkCircleOutline, alertCircleOutline } from "ion
 import { useLocation } from "react-router-dom";
 import { Header } from "../components/layout/Header";
 import { useApi } from "../contexts/apiContext";
+import CredentialsDisplay, { OnslipCredentials } from "../components/config/CredentialsDisplay";
 import "../styles/pages/Config.css";
 
 const Config: React.FC = () => {
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+    const [credentials, setCredentials] = useState<OnslipCredentials | null>(null);
     const location = useLocation();
     const [presentToast] = useIonToast();
     const api = useApi();
@@ -24,9 +26,18 @@ const Config: React.FC = () => {
         const success = searchParams.get('success');
         const error = searchParams.get('error');
         const errorMessage = searchParams.get('message');
+        
+        const hawkId = searchParams.get('hawkId');
+        const key = searchParams.get('key');
+        const realm = searchParams.get('realm');
 
-        if (success === 'true') {
+        if (success === 'true' && hawkId && key && realm) {
             setStatus('success');
+            setCredentials({
+                hawkId: decodeURIComponent(hawkId),
+                key: decodeURIComponent(key),
+                realm: decodeURIComponent(realm)
+            });
             presentToast({
                 message: 'Anslutningen till Onslip lyckades!',
                 duration: 3000,
@@ -69,6 +80,68 @@ const Config: React.FC = () => {
         }
     };
 
+    const renderContent = () => {
+        if (status === 'success' && credentials) {
+            return (
+                <div className="config-card">
+                    <div className="config-alert success">
+                        <IonIcon icon={checkmarkCircleOutline} />
+                        <span>Registreringen har lyckats!</span>
+                    </div>
+                    <CredentialsDisplay credentials={credentials} />
+                </div>
+            );
+        }
+
+        if (status === 'error') {
+            return (
+                <div className="config-card">
+                    <h3>Onslip Integration</h3>
+                    <p className="config-description">
+                        Anslut din butik till Onslip för att synkronisera produkter, 
+                        ordrar och betalningar.
+                    </p>
+                    <div className="config-alert error">
+                        <IonIcon icon={alertCircleOutline} />
+                        <span>Ett fel uppstod vid anslutning till Onslip</span>
+                    </div>
+                    <IonButton
+                        expand="block"
+                        onClick={handleOnslipConnect}
+                        className="config-button"
+                    >
+                        Försök igen
+                    </IonButton>
+                </div>
+            );
+        }
+
+        return (
+            <div className="config-card">
+                <h3>Onslip Integration</h3>
+                <p className="config-description">
+                    Anslut din butik till Onslip för att synkronisera produkter, 
+                    ordrar och betalningar.
+                </p>
+                <IonButton
+                    expand="block"
+                    onClick={handleOnslipConnect}
+                    disabled={status === 'loading'}
+                    className="config-button"
+                >
+                    {status === 'loading' ? (
+                        <>
+                            <IonSpinner name="crescent" />
+                            <span>Ansluter...</span>
+                        </>
+                    ) : (
+                        'Anslut till Onslip'
+                    )}
+                </IonButton>
+            </div>
+        );
+    };
+
     return (
         <IonPage>
             <Header />
@@ -79,43 +152,7 @@ const Config: React.FC = () => {
                             <IonIcon icon={settingsOutline} className="section-icon" />
                             <h2>Inställningar</h2>
                         </div>
-
-                        <div className="config-card">
-                            <h3>Onslip Integration</h3>
-                            <p className="description">
-                                Anslut din butik till Onslip för att synkronisera produkter, 
-                                ordrar och betalningar.
-                            </p>
-
-                            {status === 'success' && (
-                                <div className="status-message success">
-                                    <IonIcon icon={checkmarkCircleOutline} />
-                                    <span>Anslutningen till Onslip lyckades!</span>
-                                </div>
-                            )}
-
-                            {status === 'error' && (
-                                <div className="status-message error">
-                                    <IonIcon icon={alertCircleOutline} />
-                                    <span>Ett fel uppstod vid anslutning till Onslip</span>
-                                </div>
-                            )}
-
-                            <IonButton
-                                expand="block"
-                                onClick={handleOnslipConnect}
-                                disabled={status === 'loading'}
-                            >
-                                {status === 'loading' ? (
-                                    <>
-                                        <IonSpinner name="crescent" />
-                                        <span>Ansluter...</span>
-                                    </>
-                                ) : (
-                                    'Anslut till Onslip'
-                                )}
-                            </IonButton>
-                        </div>
+                        {renderContent()}
                     </section>
                 </div>
             </IonContent>
