@@ -70,6 +70,17 @@ export const api = {
         if (!response.ok) throw new Error("Betalningen misslyckades");
         return response.json();
     },
+    calcDiscountedTotal: async (data: any): Promise<number> => {
+        const response = await fetch(`${API_URL}/orders/calc-total-discount`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) throw new Error("Beräkningen misslyckades");
+
+        const total = response.json();
+        return total;
+    },
 
     // Delivery
     sendDeliveryNotification: async (deliveryDetails: any) => {
