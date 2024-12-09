@@ -2,39 +2,34 @@ import { Router } from 'express';
 import oauthController from '../controllers/oauth.controller';
 import { validateSession } from '../middleware/validation.middleware';
 import OnslipService from '../services/onslip.service';
+import { logger } from '../utils/logger';
+import { ApplicationError, ErrorCode } from '../middleware/error.middleware';
 
 const router = Router();
 
 /**
- * @route   GET /api/oauth/authorize
- * @desc    Initierar OAuth-flödet och genererar auktoriserings-URL
- * @access  Public
+ * OAuth routes
  */
-router.get('/authorize', validateSession, oauthController.authorize.bind(oauthController));
+router.get('/authorize', validateSession, oauthController.authorize);
+router.get('/callback', validateSession, oauthController.callback);
 
 /**
- * @route   GET /api/oauth/callback
- * @desc    Callback endpoint för OAuth-flödet
- * @access  Public
+ * Registering route
  */
-router.get('/callback', validateSession, oauthController.callback.bind(oauthController));
-
-/**
- * @route   POST /api/oauth/register
- * @desc    Registrerar integrationen med Onslip
- * @access  Public
- */
-router.post('/register', async (req, res) => {
-    const onslipServiceInstance = OnslipService;
+router.post('/register', validateSession, async (req, res, next) => {
     try {
-        const result = await onslipServiceInstance.registerIntegration();
+        const result = await OnslipService.registerIntegration();
+        logger.info('Integration registered successfully');
         res.json(result);
     } catch (error) {
-        console.error('Registration error:', error);
-        res.status(500).json({ 
-            error: 'Kunde inte registrera integration',
-            details: process.env.NODE_ENV === 'development' ? error : undefined
-        });
+        logger.error('Integration registration failed', { error });
+        next(new ApplicationError(
+            'Kunde inte registrera integration',
+            500,
+            ErrorCode.INTEGRATION_ERROR,
+            true,
+            error instanceof Error ? error.message : undefined
+        ));
     }
 });
 

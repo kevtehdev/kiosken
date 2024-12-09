@@ -188,7 +188,7 @@ export class OnslipService {
     public async verifyToken(token: OAuthTokenResponse): Promise<boolean> {
         console.log("token", token.access_token);
         console.log("realm", token.realm);
-        console.log("secret", token.secret);
+        console.log("secret", btoa(token.secret));
 
         try {
             console.log("Verifying token validity...");
