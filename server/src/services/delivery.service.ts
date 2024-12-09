@@ -1,6 +1,8 @@
 import { API } from "@onslip/onslip-360-node-api";
 import { OnslipService } from "./onslip.service";
-import { OnslipCustomer } from "../types";
+import { OnslipCustomerExtended } from '../types/onslip.types';
+import { logger } from '../utils/logger';
+import { ApplicationError, ErrorCode } from '../middleware/error.middleware';
 
 export interface DeliveryDetails {
     orderId: string;
@@ -10,6 +12,8 @@ export interface DeliveryDetails {
     deliveryLocation: string;
     totalAmount: number;
     items: string[];
+    paymentMethod: 'card' | 'swish';
+    deliveryNotes?: string;
 }
 
 export class DeliveryService {
@@ -20,24 +24,58 @@ export class DeliveryService {
         this.onslipService = new OnslipService();
     }
 
-    async getDeliveryStaff(): Promise<OnslipCustomer | null> {
+    async processNewOrder(details: DeliveryDetails): Promise<void> {
+        try {
+            logger.info('Processing new order', { 
+                orderId: details.orderId,
+                customerName: details.customerName 
+            });
+
+            await this.sendOrderConfirmation(details);
+            logger.info('Order confirmation sent to customer', { orderId: details.orderId });
+
+            await this.sendDeliveryStaffNotification(details);
+            logger.info('Delivery staff notified', { orderId: details.orderId });
+
+        } catch (error) {
+            logger.error('Failed to process new order', {
+                error,
+                orderId: details.orderId
+            });
+            throw new ApplicationError(
+                'Could not process order',
+                500,
+                ErrorCode.INTERNAL_ERROR
+            );
+        }
+    }
+
+    async getDeliveryStaff(): Promise<OnslipCustomerExtended | null> {
         try {
             const staff = await this.onslipService.getCustomer(
                 this.DELIVERY_STAFF_ID
             );
             if (staff) {
-                console.log(
-                    `Tilldelad leveranspersonal: ${staff.name} (Employee ID: ${this.DELIVERY_STAFF_ID})`
-                );
+                logger.info('Delivery staff found', {
+                    staffId: this.DELIVERY_STAFF_ID,
+                    staffName: staff.name
+                });
                 return staff;
             }
-            console.error(
-                `Leveranspersonal (ID ${this.DELIVERY_STAFF_ID}) hittades inte`
-            );
+            logger.error('Delivery staff not found', {
+                staffId: this.DELIVERY_STAFF_ID
+            });
             return null;
         } catch (error) {
-            console.error("Fel vid hämtning av leveranspersonal:", error);
-            return null;
+            logger.error("Error fetching delivery staff", { 
+                error,
+                staffId: this.DELIVERY_STAFF_ID
+            });
+            throw new ApplicationError(
+                'Could not fetch delivery staff',
+                500,
+                ErrorCode.INTERNAL_ERROR
+            );
         }
     }
 
@@ -59,6 +97,7 @@ Produkter:
 ${details.items.join("\n")}
 
 Totalt belopp: ${details.totalAmount} kr
+${details.deliveryNotes ? `\nLeveransnoteringar: ${details.deliveryNotes}` : ''}
 `;
     }
 
@@ -80,29 +119,52 @@ Totalt belopp: ${details.totalAmount} kr
             };
 
             await this.onslipService.doCommand(command);
-            console.log(`E-post skickad till: ${recipientEmail}`);
+            logger.info('Email sent successfully', {
+                recipient: recipientEmail,
+                subject
+            });
         } catch (error) {
-            console.error("Fel vid skickande av e-post:", error);
-            throw error;
+            logger.error("Failed to send email", {
+                error,
+                recipient: recipientEmail,
+                subject
+            });
+            throw new ApplicationError(
+                'Could not send email',
+                500,
+                ErrorCode.INTERNAL_ERROR
+            );
         }
     }
 
-    async sendCustomerOrderConfirmation(
-        details: DeliveryDetails
-    ): Promise<void> {
-        await this.sendEmail(
-            details.customerEmail,
-            `Orderbekräftelse: ${details.orderName}`,
-            `
-Hej!
+    async sendOrderConfirmation(details: DeliveryDetails): Promise<void> {
+        try {
+            await this.sendEmail(
+                details.customerEmail,
+                `Orderbekräftelse: ${details.orderName}`,
+                `
+Hej ${details.customerName}!
 
-Din beställning är mottagen och behandlas nu.
+Din beställning är mottagen och väntar på betalning vid leverans.
 
 ${this.formatOrderDetails(details)}
 
+Betalningsinformation:
+- Betalning sker med ${details.paymentMethod} vid leverans
+- Summa att betala: ${details.totalAmount} kr
+
+Vi ser fram emot att leverera din beställning!
+
 Med vänliga hälsningar,
 Teamet på Onslip`
-        );
+            );
+        } catch (error) {
+            throw new ApplicationError(
+                'Failed to send order confirmation',
+                500,
+                ErrorCode.INTEGRATION_ERROR
+            );
+        }
     }
 
     async sendDeliveryStaffNotification(
@@ -110,46 +172,96 @@ Teamet på Onslip`
     ): Promise<void> {
         const staff = await this.getDeliveryStaff();
         if (!staff?.email) {
-            throw new Error(
-                "Kunde inte hitta e-postadress för leveranspersonal"
+            throw new ApplicationError(
+                "Kunde inte hitta e-postadress för leveranspersonal",
+                500,
+                ErrorCode.NOT_FOUND
             );
         }
 
-        await this.sendEmail(
-            staff.email,
-            `Ny leverans att hantera: ${details.orderName}`,
-            `
+        try {
+            await this.sendEmail(
+                staff.email,
+                `Ny order att hantera: ${details.orderName}`,
+                `
 Hej!
 
-En ny leverans väntar på din hantering.
+En ny order har inkommit och väntar på leverans.
 
 ${this.formatOrderDetails(details)}
 
+Betalningsinformation:
+- Betalning sker med ${details.paymentMethod} vid leverans
+- Summa att ta betalt: ${details.totalAmount} kr
+
+Var god leverera ordern till angiven adress.
+
 Med vänliga hälsningar,
 Teamet på Onslip`
-        );
+            );
+        } catch (error) {
+            throw new ApplicationError(
+                'Failed to send staff notification',
+                500,
+                ErrorCode.INTEGRATION_ERROR
+            );
+        }
     }
 
     async sendPaymentConfirmation(
         details: DeliveryDetails,
         transactionId: string
     ): Promise<void> {
-        await this.sendEmail(
-            details.customerEmail,
-            `Betalningsbekräftelse: ${details.orderName}`,
-            `
-Hej!
+        try {
+            await this.sendEmail(
+                details.customerEmail,
+                `Kvitto för order: ${details.orderName}`,
+                `
+Hej ${details.customerName}!
 
-Vi bekräftar att betalningen har genomförts.
-
-Transaktions-ID: ${transactionId}
+Tack för din betalning! Här kommer ditt kvitto.
 
 ${this.formatOrderDetails(details)}
 
-Tack för ditt köp!
+Betalningsinformation:
+- Transaktions-ID: ${transactionId}
+- Betalningsmetod: ${details.paymentMethod}
+- Betalt belopp: ${details.totalAmount} kr
+
+Tack för att du handlar hos oss!
 
 Med vänliga hälsningar,
 Teamet på Onslip`
-        );
+            );
+
+            const staff = await this.getDeliveryStaff();
+            if (staff?.email) {
+                await this.sendEmail(
+                    staff.email,
+                    `Betalning bekräftad för order: ${details.orderName}`,
+                    `
+Hej!
+
+Betalningen har nu genomförts för följande order:
+
+${this.formatOrderDetails(details)}
+
+Transaktions-ID: ${transactionId}
+
+Ordern är nu klar att levereras.
+
+Med vänliga hälsningar,
+Teamet på Onslip`
+                );
+            }
+        } catch (error) {
+            throw new ApplicationError(
+                'Failed to send payment confirmation',
+                500,
+                ErrorCode.INTEGRATION_ERROR
+            );
+        }
     }
 }
+
+export default new DeliveryService();

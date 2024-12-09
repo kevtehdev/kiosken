@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { DeliveryService, DeliveryDetails } from '../services/delivery.service';
+import { logger } from '../utils/logger';
+import { ApplicationError } from '../middleware/error.middleware';
 
 export class DeliveryController {
     private deliveryService: DeliveryService;
@@ -8,51 +10,68 @@ export class DeliveryController {
         this.deliveryService = new DeliveryService();
     }
 
-    getDeliveryStaff = async (req: Request, res: Response) => {
-        try {
-            const staff = await this.deliveryService.getDeliveryStaff();
-            if (staff) {
-                res.json(staff);
-            } else {
-                res.status(404).json({ error: 'Leveranspersonal hittades inte' });
-            }
-        } catch (error) {
-            res.status(500).json({ error: 'Kunde inte hämta leveranspersonal' });
-        }
-    };
-
-    createDeliveryTags = (req: Request, res: Response) => {
-        try {
-            const { resourceId } = req.params;
-            const tags = this.deliveryService.createDeliveryTags(Number(resourceId));
-            res.json({ tags });
-        } catch (error) {
-            res.status(500).json({ error: 'Kunde inte skapa leveranstagg' });
-        }
-    };
-
-    sendOrderNotifications = async (req: Request, res: Response) => {
+    processNewOrder = async (req: Request, res: Response) => {
         try {
             const deliveryDetails: DeliveryDetails = req.body;
-            
-            await Promise.all([
-                this.deliveryService.sendCustomerOrderConfirmation(deliveryDetails),
-                this.deliveryService.sendDeliveryStaffNotification(deliveryDetails)
-            ]);
 
-            res.json({ message: 'Notifieringar skickade' });
+            if (!this.validateDeliveryDetails(deliveryDetails)) {
+                throw new ApplicationError('Invalid delivery details', 400);
+            }
+
+            await this.deliveryService.processNewOrder(deliveryDetails);
+
+            logger.info('New order processed successfully', {
+                orderId: deliveryDetails.orderId
+            });
+
+            res.status(200).json({
+                message: 'Order processed successfully',
+                orderId: deliveryDetails.orderId
+            });
         } catch (error) {
-            res.status(500).json({ error: 'Kunde inte skicka notifieringar' });
+            logger.error('Failed to process new order', { error });
+            res.status(error instanceof ApplicationError ? error.status : 500)
+               .json({ error: error instanceof Error ? error.message : 'Failed to process order' });
         }
     };
 
-    sendPaymentConfirmation = async (req: Request, res: Response) => {
+    sendPaymentReceipt = async (req: Request, res: Response) => {
         try {
             const { deliveryDetails, transactionId } = req.body;
-            await this.deliveryService.sendPaymentConfirmation(deliveryDetails, transactionId);
-            res.json({ message: 'Betalningsbekräftelse skickad' });
+
+            await this.deliveryService.sendPaymentConfirmation(
+                deliveryDetails,
+                transactionId
+            );
+
+            logger.info('Payment receipt sent', {
+                orderId: deliveryDetails.orderId,
+                transactionId
+            });
+
+            res.status(200).json({ 
+                message: 'Payment receipt sent successfully' 
+            });
         } catch (error) {
-            res.status(500).json({ error: 'Kunde inte skicka betalningsbekräftelse' });
+            logger.error('Failed to send payment receipt', { error });
+            res.status(500).json({ 
+                error: 'Could not send payment receipt' 
+            });
         }
     };
+
+    private validateDeliveryDetails(details: any): details is DeliveryDetails {
+        return Boolean(
+            details &&
+            details.orderId &&
+            details.orderName &&
+            details.customerName &&
+            details.customerEmail &&
+            details.deliveryLocation &&
+            details.totalAmount &&
+            Array.isArray(details.items) &&
+            details.items.length > 0 &&
+            details.paymentMethod
+        );
+    }
 }

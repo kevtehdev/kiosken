@@ -2,14 +2,12 @@ import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
 import { randomUUID } from 'crypto';
 
-// Interface för responseTime metrics
 interface ResponseTimeMetrics {
     startTime: number;
     endTime: number;
     duration: number;
 }
 
-// Utöka Express Request interface för att inkludera metrics
 declare global {
     namespace Express {
         interface Request {
@@ -60,8 +58,8 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
 
     // Logga inkommande förfrågan
     logger.info('Inkommande förfrågan', {
+        environment: process.env.NODE_ENV,
         requestId,
-        timestamp: new Date().toISOString(),
         method: req.method,
         url: req.url,
         path: req.path,
@@ -87,15 +85,28 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
 
         const level = res.statusCode >= 400 ? 'warn' : 'info';
         
+        // Hantera response body
+        let responseBody;
+        if (res.statusCode >= 400 && res.locals.body) {
+            try {
+                responseBody = typeof res.locals.body === 'string' ? 
+                    JSON.parse(res.locals.body) : 
+                    res.locals.body;
+            } catch {
+                // Om parsing misslyckas, använd original body
+                responseBody = res.locals.body;
+            }
+        }
+        
         logger.log(level, 'Förfrågan slutförd', {
+            environment: process.env.NODE_ENV,
             requestId,
-            timestamp: new Date().toISOString(),
             method: req.method,
             url: req.url,
             status: res.statusCode,
             duration: req.metrics.duration,
             responseHeaders: sanitizeData(res.getHeaders()),
-            responseBody: res.statusCode >= 400 ? sanitizeData(res.locals.body) : undefined,
+            ...(responseBody && { responseBody: sanitizeData(responseBody) }),
             ip: req.ip,
             userAgent: req.get('user-agent')
         });

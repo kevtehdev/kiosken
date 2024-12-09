@@ -4,8 +4,8 @@ export const integrationConfig: {
     integration: API.Integration;
 } = {
     integration: {
-        alias: "kevtehdev",
-        name: "Kiosken Integration (Kevtehdev)",
+        alias: "kevtehdev2",
+        name: "Kiosken Integration (Kevtehdev2)",
         type: "oauth",
         description: "Integration för Kiosken-applikationen",
         author: "Kevin Johnson",
@@ -26,6 +26,10 @@ export const integrationConfig: {
             "show-integrations",
             "show-locations",
             "show-orders",
+            "edit-orders",
+            "send-emails",
+            "show-digital-receipts",
+            "show-payment-methods",
         ],
 
         // Features måste vara tomma eller innehålla bara de features som är explicit definierade i API:et

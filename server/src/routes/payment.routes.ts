@@ -1,21 +1,19 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
 import { PaymentController } from '../controllers/payment.controller';
+import { validateSession } from '../middleware/validation.middleware';
+import { logger } from '../utils/logger';
 
 const router = Router();
 const paymentController = new PaymentController();
 
-router.post('/process', async (req: Request, res: Response) => {
-    await paymentController.processPayment(req, res);
-});
+// Process payment
+router.post('/process', validateSession, paymentController.processPayment);
 
-// Lägg till route för att kontrollera betalningsstatus
-router.get('/status/:orderId', async (req: Request, res: Response) => {
-    try {
-        const { orderId } = req.params;
-        res.json({ orderId, status: 'pending' });
-    } catch (error) {
-        res.status(500).json({ error: 'Kunde inte hämta betalningsstatus' });
-    }
-});
+// Check payment status
+router.get('/status/:orderId', validateSession, paymentController.checkPaymentStatus);
+
+// Terminal callback for payment updates
+router.post('/terminal-callback', paymentController.handleTerminalCallback);
 
 export default router;
+

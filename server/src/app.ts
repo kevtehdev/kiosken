@@ -22,14 +22,12 @@ import oauthRoutes from "./routes/oauth.routes";
 
 const app = express();
 
-// Säkerhetskonfiguration
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minuter
     max: 100, // Max 100 förfrågningar per IP
     message: "För många förfrågningar från denna IP, försök igen senare"
 });
 
-// Grundläggande säkerhetsinställningar
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -43,12 +41,11 @@ app.use(helmet({
     crossOriginEmbedderPolicy: env.nodeEnv === 'production'
 }));
 
-// CORS configuration
 const corsOptions = {
     origin: env.cors.origin.split(','),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'x-request-id', 'x-api-key'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id', 'x-api-key'],
     exposedHeaders: ['x-request-id'],
     maxAge: 600 // 10 minuter
 };
@@ -61,7 +58,6 @@ app.use(cookieParser());
 app.use(requestLogger);
 app.use('/api/', limiter);
 
-// Session configuration
 const sessionConfig: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || 'dev-secret',
     name: 'sessionId',
@@ -77,12 +73,11 @@ const sessionConfig: session.SessionOptions = {
 };
 
 if (env.nodeEnv === 'production') {
-    app.set('trust proxy', 1); // Trust first proxy
+    app.set('trust proxy', 1);
 }
 
 app.use(session(sessionConfig));
 
-// Hälsokontroll endpoint
 app.get("/health", (req, res) => {
     res.status(200).json({
         status: "UP",
@@ -91,7 +86,6 @@ app.get("/health", (req, res) => {
     });
 });
 
-// API Routes med session validering
 app.use("/api/buttons", validateSession, buttonRoutes);
 app.use("/api/campaigns", validateSession, campaignRoutes);
 app.use("/api/delivery", validateSession, deliveryRoutes);
@@ -100,17 +94,14 @@ app.use("/api/resources", validateSession, resourceRoutes);
 app.use("/api/customers", validateSession, customerRoutes);
 app.use("/api/oauth", oauthRoutes);
 
-// 404 handler
 app.use((req, res, next) => {
     const error = new Error(`Not Found - ${req.originalUrl}`);
     res.status(404);
     next(error);
 });
 
-// Error handling
 app.use(errorHandler);
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
     logger.info('SIGTERM signal mottagen. Stänger ner servern...');
 });

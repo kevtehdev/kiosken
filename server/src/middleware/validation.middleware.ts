@@ -134,15 +134,6 @@ export const validateSession = (
             );
         }
 
-        // Kontrollera CSRF om det inte är en GET-förfrågan
-        if (req.method !== 'GET' && !req.headers['x-csrf-token']) {
-            throw new ApplicationError(
-                'CSRF-token saknas',
-                403,
-                ErrorCode.AUTHORIZATION_ERROR
-            );
-        }
-
         // Kontrollera API nyckel för externa förfrågningar
         if (req.path.startsWith('/api/') && !req.headers['x-api-key']) {
             const apiKey = req.headers['x-api-key'];

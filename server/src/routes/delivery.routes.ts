@@ -1,12 +1,20 @@
 import { Router } from 'express';
 import { DeliveryController } from '../controllers/delivery.controller';
+import { validateSession } from '../middleware/validation.middleware';
 
 const router = Router();
 const deliveryController = new DeliveryController();
 
-router.get('/staff', deliveryController.getDeliveryStaff);
-router.get('/tags/:resourceId', deliveryController.createDeliveryTags);
-router.post('/notifications', deliveryController.sendOrderNotifications);
-router.post('/payment-confirmation', deliveryController.sendPaymentConfirmation);
+// Process new order and notify staff
+router.post('/orders', 
+    validateSession, 
+    deliveryController.processNewOrder
+);
+
+// Send payment receipt
+router.post('/payment-receipt', 
+    validateSession, 
+    deliveryController.sendPaymentReceipt
+);
 
 export default router;

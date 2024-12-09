@@ -148,10 +148,6 @@ const Config: React.FC = () => {
             <IonContent>
                 <div className="config-container">
                     <section className="config-section">
-                        <div className="section-header">
-                            <IonIcon icon={settingsOutline} className="section-icon" />
-                            <h2>Inställningar</h2>
-                        </div>
                         {renderContent()}
                     </section>
                 </div>

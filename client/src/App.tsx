@@ -60,7 +60,7 @@ const App: React.FC = () => {
                     <CustomerProvider>
                         <IonReactRouter>
                             <IonRouterOutlet>
-                            <Route path="/" render={() => <TabsContainer />} />
+                                <Route path="/" render={() => <TabsContainer />} />
                             </IonRouterOutlet>
                         </IonReactRouter>
                     </CustomerProvider>
