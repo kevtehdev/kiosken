@@ -7,7 +7,7 @@ export class OrderController {
     private onslipService: OnslipService;
 
     constructor() {
-        this.onslipService = new OnslipService();
+        this.onslipService = OnslipService.getInstance();
     }
 
     calcTotalDiscount = async (req: Request, res: Response) => {

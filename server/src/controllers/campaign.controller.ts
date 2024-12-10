@@ -7,7 +7,7 @@ export class CampaignController {
     private onslipService: OnslipService;
 
     constructor() {
-        this.onslipService = new OnslipService();
+        this.onslipService = OnslipService.getInstance();
     }
 
     getCampaigns = async (req: Request, res: Response) => {

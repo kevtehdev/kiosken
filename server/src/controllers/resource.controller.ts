@@ -1,12 +1,12 @@
-import { Request, Response } from 'express';
-import { OnslipService } from '../services/onslip.service';
-import { Resource } from '../types';
+import { Request, Response } from "express";
+import { OnslipService } from "../services/onslip.service";
+import { Resource } from "../types";
 
 export class ResourceController {
     private onslipService: OnslipService;
 
     constructor() {
-        this.onslipService = new OnslipService();
+        this.onslipService = OnslipService.getInstance();
     }
 
     getResources = async (req: Request, res: Response) => {
@@ -14,17 +14,19 @@ export class ResourceController {
             const resources = await this.onslipService.listResources();
             res.json(resources);
         } catch (error) {
-            res.status(500).json({ error: 'Kunde inte hämta resurser' });
+            res.status(500).json({ error: "Kunde inte hämta resurser" });
         }
     };
 
     createResource = async (req: Request, res: Response) => {
         try {
-            const resourceData: Omit<Resource, 'id'> = req.body;
-            const newResource = await this.onslipService.addResource(resourceData);
+            const resourceData: Omit<Resource, "id"> = req.body;
+            const newResource = await this.onslipService.addResource(
+                resourceData
+            );
             res.status(201).json(newResource);
         } catch (error) {
-            res.status(500).json({ error: 'Kunde inte skapa resurs' });
+            res.status(500).json({ error: "Kunde inte skapa resurs" });
         }
     };
 }

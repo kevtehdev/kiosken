@@ -5,7 +5,7 @@ export class CustomerController {
     private onslipService: OnslipService;
 
     constructor() {
-        this.onslipService = new OnslipService();
+        this.onslipService = OnslipService.getInstance();
     }
 
     getCustomers = async (req: Request, res: Response) => {

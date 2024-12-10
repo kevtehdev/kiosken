@@ -13,65 +13,75 @@ export class OnslipService {
     private api: API;
     private static instance: OnslipService;
 
-    constructor() {
+    private constructor(hawkId: string, secret: string, realm: string) {
         API.initialize(
             nodeRequestHandler({ userAgent: `${pkg.name}/${pkg.version}` })
         );
-        this.api = new API(
-            env.onslip.apiUrl,
-            env.onslip.realm,
-            env.onslip.hawkId,
-            env.onslip.apiKey
-        );
+        this.api = new API(env.onslip.apiUrl, realm, hawkId, secret);
     }
 
     public static getInstance(): OnslipService {
         if (!OnslipService.instance) {
-            OnslipService.instance = new OnslipService();
+            OnslipService.instance = new OnslipService(
+                env.onslip.hawkId,
+                env.onslip.apiKey,
+                env.onslip.realm
+            );
         }
         return OnslipService.instance;
     }
 
+    public static reset(hawkId: string, secret: string, realm: string) {
+        console.log("RESETTTING");
+
+        OnslipService.instance = new OnslipService(hawkId, secret, realm);
+    }
+
     // API Methods
     async listButtonMaps() {
-        return await this.api.listButtonMaps();
+        return await OnslipService.instance.api.listButtonMaps();
     }
 
     async listProducts() {
-        return await this.api.listProducts();
+        return await OnslipService.instance.api.listProducts();
     }
 
     async listCampaigns() {
-        return await this.api.listCampaigns();
+        return await OnslipService.instance.api.listCampaigns();
     }
 
     async listCustomers() {
-        return await this.api.listCustomers();
+        return await OnslipService.instance.api.listCustomers();
     }
 
     async getCustomer(id: number) {
-        return await this.api.getCustomer(id);
+        return await OnslipService.instance.api.getCustomer(id);
     }
 
     async listResources() {
-        return await this.api.listResources();
+        return await OnslipService.instance.api.listResources();
     }
 
     async addResource(resource: Resource) {
         const { id, ...resourceData } = resource;
-        return await this.api.addResource(resourceData as API.Resource);
+        return await OnslipService.instance.api.addResource(
+            resourceData as API.Resource
+        );
     }
 
     async doCommand(command: API.Command) {
-        return await this.api.doCommand(command);
+        return await OnslipService.instance.api.doCommand(command);
     }
 
     async addOrder(order: API.Order) {
-        return await this.api.addOrder(order);
+        return await OnslipService.instance.api.addOrder(order);
     }
 
     async listStockBalance(location: number, query: string) {
-        return await this.api.listStockBalances(location, query);
+        return await OnslipService.instance.api.listStockBalances(
+            location,
+            query
+        );
     }
 
     /**
@@ -83,7 +93,7 @@ export class OnslipService {
                 "Attempting to register integration with config:",
                 integrationConfig.integration
             );
-            const result = await this.api.addIntegration(
+            const result = await OnslipService.instance.api.addIntegration(
                 integrationConfig.integration
             );
             console.log("Integration registered successfully:", result);
@@ -427,12 +437,12 @@ export class OnslipService {
     }
 
     async findBestCampaign(productId: number): Promise<API.Campaign | null> {
-        const campaigns = await this.api.listCampaigns();
+        const campaigns = await OnslipService.instance.api.listCampaigns();
         const filteredCampaigns = campaigns.filter((campaign) =>
             campaign.rules.some((rule) => rule.products.includes(productId))
         );
 
-        const product = await this.api.getProduct(productId);
+        const product = await OnslipService.instance.api.getProduct(productId);
         const productPrice = product.price;
 
         if (!filteredCampaigns.length || productPrice == undefined) return null;
