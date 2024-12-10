@@ -108,7 +108,7 @@ export const api = {
         return res;
     },
 
-    listStockBalance: async (location: number, query: string) => {
+    listStockBalance: async (location: number, query?: string) => {
         const response = await fetch(`${API_URL}/stock`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
