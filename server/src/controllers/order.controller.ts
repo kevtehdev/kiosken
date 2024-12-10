@@ -11,9 +11,6 @@ export class OrderController {
     }
 
     calcTotalDiscount = async (req: Request, res: Response) => {
-        console.log("DISCOUNT");
-        console.log(req.body);
-
         try {
             const data: API.Item[] = req.body;
 

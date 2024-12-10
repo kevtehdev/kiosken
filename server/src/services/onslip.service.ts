@@ -348,16 +348,11 @@ export class OnslipService {
     async getCampaignPriceForItem(item: API.Item): Promise<number> {
         const { quantity, price } = item;
 
-        const campaigns = await this.api.listCampaigns();
-        const filteredCampaigns = campaigns.filter((campaign) =>
-            campaign.rules.some((rule) => rule.products.includes(item.product!))
-        );
-
         if (price == undefined || quantity == undefined) {
             return 0;
         }
 
-        const campaign = this.findBestCampaign(filteredCampaigns, price!);
+        const campaign = await this.findBestCampaign(item.product!);
 
         let reducedPrice = price * quantity;
 
@@ -427,11 +422,16 @@ export class OnslipService {
         return reducedPrice;
     }
 
-    findBestCampaign(
-        filteredCampaigns: API.Campaign[],
-        productPrice: number
-    ): API.Campaign | null {
-        if (!filteredCampaigns.length) return null;
+    async findBestCampaign(productId: number): Promise<API.Campaign | null> {
+        const campaigns = await this.api.listCampaigns();
+        const filteredCampaigns = campaigns.filter((campaign) =>
+            campaign.rules.some((rule) => rule.products.includes(productId))
+        );
+
+        const product = await this.api.getProduct(productId);
+        const productPrice = product.price;
+
+        if (!filteredCampaigns.length || productPrice == undefined) return null;
 
         return filteredCampaigns.reduce<API.Campaign | null>(
             (bestCampaign, currentCampaign) => {

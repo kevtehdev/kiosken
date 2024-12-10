@@ -1,3 +1,5 @@
+import { API } from "@onslip/onslip-360-web-api";
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 interface ApiResponse<T> {
@@ -92,6 +94,18 @@ export const api = {
         if (!response.ok)
             throw new Error("Kunde inte skicka leveransnotifieringar");
         return response.json();
+    },
+
+    findBestCampaign: async (id: number) => {
+        const response = await fetch(`${API_URL}/campaigns/find-best`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id }),
+        });
+        if (!response.ok) throw new Error("Beräkningen misslyckades");
+
+        const res = (await response.json()) as API.Campaign;
+        return res;
     },
 };
 

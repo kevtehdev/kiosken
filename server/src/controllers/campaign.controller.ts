@@ -113,6 +113,19 @@ export class CampaignController {
             );
     }
 
+    findBestCampaign = async (req: Request, res: Response) => {
+        try {
+            const id = Number(req.body.id);
+            const campaign = await this.onslipService.findBestCampaign(id);
+            res.json(campaign);
+        } catch (error) {
+            console.error("Error in findBestCampaign:", error);
+            res.status(500).json({
+                error: "Kunde inte beräkna rabatterat pris",
+            });
+        }
+    };
+
     private calculateDiscount(
         originalPrice: number,
         campaign: ProductCampaign
