@@ -4,8 +4,8 @@ export const integrationConfig: {
     integration: API.Integration;
 } = {
     integration: {
-        alias: "kevtehdev2",
-        name: "Kiosken Integration (Kevtehdev2)",
+        alias: "kevtehdev3",
+        name: "Kiosken Integration (Kevtehdev3)",
         type: "oauth",
         description: "Integration för Kiosken-applikationen",
         author: "Kevin Johnson",

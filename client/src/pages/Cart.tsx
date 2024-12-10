@@ -64,37 +64,24 @@ export default function Cart() {
     }, []);
 
     useEffect(() => {
-        const calculateTotals = async () => {
-            try {
-                let totalWithoutDiscount = state.items.reduce(
-                    (sum, item) => sum + (item.price || 0) * item.quantity,
-                    0
-                );
+        const calculateTotal = async () => {
+            const total = await api.calcDiscountedTotal(state.items);
 
-                let discountedTotal = totalWithoutDiscount;
+            console.log("total", total);
 
-                for (const item of state.items) {
-                    const response = await api.calculateDiscount({
-                        originalPrice: (item.price || 0) * item.quantity,
-                        campaign: { productId: item.product },
-                    });
+            let totalWithoutDiscount = state.items.reduce(
+                (sum, item) => sum + (item.price || 0) * item.quantity,
+                0
+            );
 
-                    if (response.discountedPrice) {
-                        discountedTotal -=
-                            (item.price || 0) * item.quantity -
-                            response.discountedPrice;
-                    }
-                }
+            console.log("totalWithoutDiscount", totalWithoutDiscount);
 
-                setTotal(discountedTotal);
-                setTotalDiscount(totalWithoutDiscount - discountedTotal);
-            } catch (error) {
-                console.error("Fel vid beräkning av total:", error);
-            }
+            setTotal(total);
+            setTotalDiscount(totalWithoutDiscount - total);
         };
 
         if (state.items.length > 0) {
-            calculateTotals();
+            calculateTotal();
         } else {
             setTotal(0);
             setTotalDiscount(0);
