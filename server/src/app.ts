@@ -20,6 +20,7 @@ import resourceRoutes from "./routes/resource.routes";
 import customerRoutes from "./routes/customer.routes";
 import oauthRoutes from "./routes/oauth.routes";
 import orderRoutes from "./routes/order.routes";
+import stockRoutes from "./routes/stock.routes";
 
 const app = express();
 
@@ -102,6 +103,7 @@ app.use("/api/payments", validateSession, paymentRoutes);
 app.use("/api/resources", validateSession, resourceRoutes);
 app.use("/api/customers", validateSession, customerRoutes);
 app.use("/api/orders", validateSession, orderRoutes);
+app.use("/api/stock", validateSession, stockRoutes);
 app.use("/api/oauth", oauthRoutes);
 
 app.use((req, res, next) => {

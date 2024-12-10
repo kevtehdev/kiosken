@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from "react";
 import {
     IonContent,
     IonPage,
@@ -7,26 +7,30 @@ import {
     IonRefresher,
     IonRefresherContent,
     IonText,
-    IonBadge
-} from '@ionic/react';
-import { refreshOutline, homeOutline } from 'ionicons/icons';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useApi } from '../contexts/apiContext';
-import { ProductCard } from '../components/products/ProductCard';
-import { Header } from '../components/layout/Header';
-import { getIconForTab } from '../components/layout/TabBar';
-import '../styles/pages/Home.css';
-
-// Uppdaterade interfaces
-interface ButtonMapItem {
-    product?: number;
-}
+    IonBadge,
+    IonToggle,
+} from "@ionic/react";
+import { refreshOutline, homeOutline } from "ionicons/icons";
+import { motion, AnimatePresence } from "framer-motion";
+import { useApi } from "../contexts/apiContext";
+import { ProductCard } from "../components/products/ProductCard";
+import { Header } from "../components/layout/Header";
+import { getIconForTab } from "../components/layout/TabBar";
+import "../styles/pages/Home.css";
+import { API } from "@onslip/onslip-360-web-api";
+import { api } from "../services/api";
 
 interface Category {
-    id: number;
+    products: number[];
+    id?: number | undefined;
     name: string;
-    type: string;
-    buttons: ButtonMapItem[];
+    type:
+        | "menu"
+        | "tablet-groups"
+        | "tablet-buttons"
+        | "phone-buttons"
+        | "menu-section";
+    buttons: API.ButtonMapItem[];
 }
 
 interface CategorySectionProps {
@@ -35,9 +39,13 @@ interface CategorySectionProps {
     index: number;
 }
 
-const CategorySection: React.FC<CategorySectionProps> = ({ category, products, index }) => {
+const CategorySection: React.FC<CategorySectionProps> = ({
+    category,
+    products,
+    index,
+}) => {
     const categoryIcon = getIconForTab(category.name);
-    
+
     return (
         <motion.section
             className="category-section"
@@ -47,7 +55,10 @@ const CategorySection: React.FC<CategorySectionProps> = ({ category, products, i
         >
             <div className="category-header">
                 <div className="category-header-content">
-                    <IonIcon icon={categoryIcon} className="category-header-icon" />
+                    <IonIcon
+                        icon={categoryIcon}
+                        className="category-header-icon"
+                    />
                     <div className="category-header-text">
                         <div className="category-header-title">
                             <h3>{category.name}</h3>
@@ -58,7 +69,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({ category, products, i
                     </div>
                 </div>
             </div>
-            
+
             <div className="category-products">
                 <div className="product-grid">
                     {products.map((productId, productIndex) => (
@@ -75,7 +86,63 @@ const CategorySection: React.FC<CategorySectionProps> = ({ category, products, i
 };
 
 const Home: React.FC = () => {
-    const { state: { buttonMaps, loading } } = useApi();
+    const {
+        state: { buttonMaps, loading },
+    } = useApi();
+    const [filterOutOfStock, setFilterOutOfStock] = useState(true);
+    const [stock, setStock] = useState<API.StockBalance[]>();
+    const [categories, setCategories] = useState<
+        {
+            products: number[];
+            id?: number | undefined;
+            name: string;
+            type:
+                | "menu"
+                | "tablet-groups"
+                | "tablet-buttons"
+                | "phone-buttons"
+                | "menu-section";
+            buttons: API.ButtonMapItem[];
+        }[]
+    >();
+
+    useEffect(() => {
+        async function fetch() {
+            const stockData = await api.listStockBalance(1);
+            setStock(stockData);
+        }
+        fetch();
+    }, []);
+
+    useEffect(() => {
+        if (stock) {
+            const filteredCategories = buttonMaps
+                .filter(
+                    (map) =>
+                        map.type === "tablet-buttons" &&
+                        map.buttons &&
+                        map.buttons.length > 0
+                )
+                .map((map) => ({
+                    ...map,
+                    products: map.buttons
+                        .filter((button) => button.product)
+                        .map((button) => button.product!),
+                }))
+                .map((category) => ({
+                    ...category,
+                    products: filterOutOfStock
+                        ? category.products.filter((product) =>
+                              stock.some(
+                                  (item) =>
+                                      item.id === product && item.quantity! > 0
+                              )
+                          )
+                        : category.products,
+                }));
+            setCategories(filteredCategories);
+        }
+    }, [stock, filterOutOfStock, buttonMaps]);
 
     const handleRefresh = (event: CustomEvent) => {
         window.location.reload();
@@ -99,27 +166,32 @@ const Home: React.FC = () => {
     }
 
     const filteredMaps = buttonMaps
-        .filter(map => 
-            map.type === 'tablet-buttons' && 
-            map.buttons && 
-            map.buttons.length > 0 && 
-            map.id !== undefined
+        .filter(
+            (map) =>
+                map.type === "tablet-buttons" &&
+                map.buttons &&
+                map.buttons.length > 0 &&
+                map.id !== undefined
         )
-        .map(map => ({
+        .map((map) => ({
             id: map.id!,
             name: map.name,
             type: map.type,
             buttons: map.buttons,
             products: map.buttons
-                .filter(button => button.product)
-                .map(button => button.product!)
+                .filter((button) => button.product)
+                .map((button) => button.product!),
         }));
 
     return (
         <IonPage>
             <Header />
             <IonContent>
-                <IonRefresher slot="fixed" onIonRefresh={handleRefresh} className="custom-refresher">
+                <IonRefresher
+                    slot="fixed"
+                    onIonRefresh={handleRefresh}
+                    className="custom-refresher"
+                >
                     <IonRefresherContent
                         pullingIcon={refreshOutline}
                         pullingText="Dra för att uppdatera"
@@ -129,30 +201,47 @@ const Home: React.FC = () => {
                 </IonRefresher>
 
                 <div className="container">
+                    <IonToggle
+                        onClick={() => setFilterOutOfStock(!filterOutOfStock)}
+                        checked={filterOutOfStock}
+                    >
+                        Göm Slut
+                    </IonToggle>
                     <AnimatePresence mode="sync">
-                        {filteredMaps.length === 0 ? (
-                            <motion.div 
+                        {categories?.length === 0 ? (
+                            <motion.div
                                 className="empty-state-container"
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -20 }}
                                 transition={{ duration: 0.3 }}
                             >
-                                <IonIcon icon={homeOutline} className="empty-state-icon" />
+                                <IonIcon
+                                    icon={homeOutline}
+                                    className="empty-state-icon"
+                                />
                                 <IonText>
                                     <h2>Inga produkter tillgängliga</h2>
-                                    <p>Det finns inga produkter att visa just nu.</p>
+                                    <p>
+                                        Det finns inga produkter att visa just
+                                        nu.
+                                    </p>
                                 </IonText>
                             </motion.div>
                         ) : (
-                            filteredMaps.map((category, index) => (
-                                <CategorySection
-                                    key={category.id}
-                                    category={category}
-                                    products={category.products}
-                                    index={index}
-                                />
-                            ))
+                            categories?.map((category, index) => {
+                                if (category.products.length > 0) {
+                                    return (
+                                        <CategorySection
+                                            key={category.id}
+                                            category={category}
+                                            products={category.products}
+                                            index={index}
+                                        />
+                                    );
+                                }
+                                return null;
+                            })
                         )}
                     </AnimatePresence>
                 </div>

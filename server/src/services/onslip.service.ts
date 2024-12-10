@@ -70,6 +70,10 @@ export class OnslipService {
         return await this.api.addOrder(order);
     }
 
+    async listStockBalance(location: number, query: string) {
+        return await this.api.listStockBalances(location, query);
+    }
+
     /**
      * Registrerar integrationen med Onslip
      */
