@@ -67,14 +67,10 @@ export default function Cart() {
         const calculateTotal = async () => {
             const total = await api.calcDiscountedTotal(state.items);
 
-            console.log("total", total);
-
             let totalWithoutDiscount = state.items.reduce(
                 (sum, item) => sum + (item.price || 0) * item.quantity,
                 0
             );
-
-            console.log("totalWithoutDiscount", totalWithoutDiscount);
 
             setTotal(total);
             setTotalDiscount(totalWithoutDiscount - total);
