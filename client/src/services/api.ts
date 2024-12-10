@@ -107,6 +107,18 @@ export const api = {
         const res = (await response.json()) as API.Campaign;
         return res;
     },
+
+    listStockBalance: async (location: number, query: string) => {
+        const response = await fetch(`${API_URL}/stock`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ location, query }),
+        });
+        if (!response.ok) throw new Error("Stock not found");
+
+        const res = (await response.json()) as API.StockBalance[];
+        return res;
+    },
 };
 
 export type ApiClient = typeof api;
