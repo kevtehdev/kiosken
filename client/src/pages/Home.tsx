@@ -104,12 +104,16 @@ const Home: React.FC = () => {
                 | "menu-section";
             buttons: API.ButtonMapItem[];
         }[]
-    >();
+    >([]);
 
     useEffect(() => {
         async function fetch() {
-            const stockData = await api.listStockBalance(1);
-            setStock(stockData);
+            try {
+                const stockData = await api.listStockBalance(1);
+                setStock(stockData);
+            } catch (error) {
+                console.log(error);
+            }
         }
         fetch();
     }, []);
@@ -165,24 +169,6 @@ const Home: React.FC = () => {
         );
     }
 
-    const filteredMaps = buttonMaps
-        .filter(
-            (map) =>
-                map.type === "tablet-buttons" &&
-                map.buttons &&
-                map.buttons.length > 0 &&
-                map.id !== undefined
-        )
-        .map((map) => ({
-            id: map.id!,
-            name: map.name,
-            type: map.type,
-            buttons: map.buttons,
-            products: map.buttons
-                .filter((button) => button.product)
-                .map((button) => button.product!),
-        }));
-
     return (
         <IonPage>
             <Header />
@@ -199,16 +185,9 @@ const Home: React.FC = () => {
                         refreshingText="Uppdaterar..."
                     />
                 </IonRefresher>
-
                 <div className="container">
-                    <IonToggle
-                        onClick={() => setFilterOutOfStock(!filterOutOfStock)}
-                        checked={filterOutOfStock}
-                    >
-                        Göm Slut
-                    </IonToggle>
                     <AnimatePresence mode="sync">
-                        {categories?.length === 0 ? (
+                        {categories.length === 0 ? (
                             <motion.div
                                 className="empty-state-container"
                                 initial={{ opacity: 0, y: 20 }}
@@ -229,19 +208,29 @@ const Home: React.FC = () => {
                                 </IonText>
                             </motion.div>
                         ) : (
-                            categories?.map((category, index) => {
-                                if (category.products.length > 0) {
-                                    return (
-                                        <CategorySection
-                                            key={category.id}
-                                            category={category}
-                                            products={category.products}
-                                            index={index}
-                                        />
-                                    );
-                                }
-                                return null;
-                            })
+                            <>
+                                <IonToggle
+                                    onClick={() =>
+                                        setFilterOutOfStock(!filterOutOfStock)
+                                    }
+                                    checked={filterOutOfStock}
+                                >
+                                    Göm Slut
+                                </IonToggle>
+                                {categories?.map((category, index) => {
+                                    if (category.products.length > 0) {
+                                        return (
+                                            <CategorySection
+                                                key={category.id}
+                                                category={category}
+                                                products={category.products}
+                                                index={index}
+                                            />
+                                        );
+                                    }
+                                    return null;
+                                })}
+                            </>
                         )}
                     </AnimatePresence>
                 </div>
