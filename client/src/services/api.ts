@@ -17,35 +17,43 @@ interface PaymentRequest {
     order: any;
 }
 
+interface PaymentStatus {
+    status: 'processing' | 'completed' | 'failed';
+    message: string;
+    transactionId?: string;
+    orderCode?: string;
+    error?: any;
+}
+
 export const api = {
-    // Products & Buttons X
+    // Products & Buttons
     getProducts: async () => {
         const response = await fetch(`${API_URL}/buttons/api-data`);
         if (!response.ok) throw new Error("Kunde inte hämta produkter");
         return response.json();
     },
 
-    // Customers X
+    // Customers
     getCustomers: async () => {
         const response = await fetch(`${API_URL}/customers`);
         if (!response.ok) throw new Error("Kunde inte hämta kunder");
         return response.json();
     },
 
-    // Resources X
+    // Resources
     getResources: async () => {
         const response = await fetch(`${API_URL}/resources`);
         if (!response.ok) throw new Error("Kunde inte hämta resurser");
         return response.json();
     },
 
-    // Campaigns X
+    // Campaigns
     getCampaigns: async () => {
         const response = await fetch(`${API_URL}/campaigns`);
         if (!response.ok) throw new Error("Kunde inte hämta kampanjer");
         return response.json();
     },
-    // X
+
     calculateDiscount: async (data: {
         originalPrice: number;
         campaign: any;
@@ -62,16 +70,57 @@ export const api = {
         return response.json();
     },
 
-    // Orders & Payments X
-    processPayment: async (data: PaymentRequest) => {
-        const response = await fetch(`${API_URL}/payments/process`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data),
-        });
-        if (!response.ok) throw new Error("Betalningen misslyckades");
-        return response.json();
+    // Payment Processing
+    processPayment: async (data: PaymentRequest): Promise<PaymentStatus> => {
+        try {
+            const response = await fetch(`${API_URL}/payments/process`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ...data,
+                    merchantId: '0da01b54-7e65-ed11-9561-000d3adea9ab'
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Betalningen misslyckades");
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Payment processing error:', error);
+            return {
+                status: 'failed',
+                message: error instanceof Error ? error.message : 'Betalningen misslyckades',
+                error: error
+            };
+        }
     },
+
+    checkPaymentStatus: async (orderId: string): Promise<PaymentStatus> => {
+        try {
+            const response = await fetch(`${API_URL}/payments/status/${orderId}`, {
+                method: "GET",
+                headers: { "Content-Type": "application/json" },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Kunde inte kontrollera betalningsstatus");
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Payment status check error:', error);
+            return {
+                status: 'failed',
+                message: error instanceof Error ? error.message : 'Kunde inte kontrollera betalningsstatus',
+                error: error
+            };
+        }
+    },
+
     calcDiscountedTotal: async (data: any): Promise<number> => {
         const response = await fetch(`${API_URL}/orders/calc-total-discount`, {
             method: "POST",

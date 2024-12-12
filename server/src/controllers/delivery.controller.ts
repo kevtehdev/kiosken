@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { DeliveryService, DeliveryDetails } from '../services/delivery.service';
+import { DeliveryService } from '../services/delivery.service';
+import { DeliveryDetails } from '../types/delivery.types';
 import { logger } from '../utils/logger';
 import { ApplicationError } from '../middleware/error.middleware';
 

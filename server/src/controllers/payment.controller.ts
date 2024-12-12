@@ -4,6 +4,7 @@ import PaymentService from "../services/payment.service";
 import { OnslipService } from "../services/onslip.service";
 import { DeliveryService } from "../services/delivery.service";
 import { ApplicationError, ErrorCode } from '../middleware/error.middleware';
+import { DeliveryDetails, OrderItem } from '../types/delivery.types';
 
 export class PaymentController {
     private paymentService: typeof PaymentService;
@@ -16,41 +17,81 @@ export class PaymentController {
         this.deliveryService = new DeliveryService();
     }
 
+    private validatePaymentRequest(body: any): boolean {
+        return Boolean(
+            body &&
+            body.deliveryDetails &&
+            body.order &&
+            typeof body.totalAmount === 'number' &&
+            body.totalAmount > 0
+        );
+    }
+
+    private transformOrderItems(orderItems: any[]): OrderItem[] {
+        if (!Array.isArray(orderItems)) return [];
+        
+        return orderItems.map(item => ({
+            id: item.product?.toString() || '',
+            name: item['product-name'] || item.name || '',
+            quantity: Number(item.quantity) || 0,
+            price: Number(item.price) || 0,
+            totalPrice: (Number(item.quantity) || 0) * (Number(item.price) || 0)
+        }));
+    }
+
     processPayment = async (req: Request, res: Response): Promise<void> => {
+        console.log('=== Processar betalning ===');
+        console.log('Request body:', req.body);
+
         try {
+            if (!this.validatePaymentRequest(req.body)) {
+                throw new ApplicationError(
+                    'Ogiltig betalningsförfrågan',
+                    400,
+                    ErrorCode.VALIDATION_ERROR
+                );
+            }
+
             const { deliveryDetails, order, totalAmount } = req.body;
+            const orderItems = this.transformOrderItems(order.items);
 
-            // 1. Lägg till order i Onslip
-            await this.onslipService.addOrder(order);
-            logger.info('Order added to Onslip', { 
-                orderId: deliveryDetails.orderId 
-            });
-
-            // 2. Initiera orderprocessen
-            await this.deliveryService.processNewOrder({
+            const updatedDeliveryDetails: DeliveryDetails = {
                 ...deliveryDetails,
-                paymentMethod: 'card'  // Default till kortbetalning
+                items: orderItems,
+                created: new Date(),
+            };
+
+            // Lägg till order i Onslip
+            await this.onslipService.addOrder(order);
+            logger.info('Order tillagd i Onslip', { 
+                orderId: updatedDeliveryDetails.orderId 
             });
 
-            // 3. Initiera betalning på terminal
+            // Initiera orderprocessen
+            await this.deliveryService.processNewOrder(updatedDeliveryDetails);
+
+            // Initiera betalning
             const paymentStatus = await this.paymentService.processCardPayment(
                 totalAmount,
-                deliveryDetails.orderId
+                updatedDeliveryDetails.orderId
             );
 
-            logger.info('Payment initiated', {
-                orderId: deliveryDetails.orderId,
+            logger.info('Betalning initierad', {
+                orderId: updatedDeliveryDetails.orderId,
                 status: paymentStatus.status
             });
 
             res.json(paymentStatus);
         } catch (error) {
-            logger.error('Payment processing error', { error });
+            logger.error('Fel vid betalningsprocessing', { error });
             if (error instanceof ApplicationError) {
-                res.status(error.status).json({ error: error.message });
+                res.status(error.status).json({ 
+                    error: error.message,
+                    code: error.code 
+                });
             } else {
                 res.status(500).json({ 
-                    error: "Could not process payment",
+                    error: "Kunde inte processa betalningen",
                     code: ErrorCode.INTERNAL_ERROR
                 });
             }
@@ -58,47 +99,80 @@ export class PaymentController {
     };
 
     checkPaymentStatus = async (req: Request, res: Response): Promise<void> => {
+        console.log('=== Kontrollerar betalningsstatus ===');
+        const { orderId } = req.params;
+        
         try {
-            const { orderId } = req.params;
-            const status = await this.paymentService.checkPaymentStatus(orderId);
+            if (!orderId) {
+                throw new ApplicationError(
+                    'Order ID saknas',
+                    400,
+                    ErrorCode.VALIDATION_ERROR
+                );
+            }
 
-            if (status.status === 'completed') {
+            const status = await this.paymentService.checkPaymentStatus(orderId);
+            
+            if (status.status === 'completed' && status.transactionId) {
                 const { deliveryDetails } = req.body;
+                const updatedDeliveryDetails: DeliveryDetails = {
+                    ...deliveryDetails,
+                    created: deliveryDetails.created || new Date(),
+                    items: this.transformOrderItems(deliveryDetails.items || [])
+                };
+
                 await this.deliveryService.sendPaymentConfirmation(
-                    deliveryDetails,
-                    status.transactionId!
+                    updatedDeliveryDetails,
+                    status.transactionId
                 );
             }
 
             res.json(status);
         } catch (error) {
-            logger.error('Payment status check failed', { error });
-            res.status(500).json({ 
-                error: "Could not check payment status",
-                code: ErrorCode.INTERNAL_ERROR
-            });
+            logger.error('Fel vid statuskontroll', { error });
+            if (error instanceof ApplicationError) {
+                res.status(error.status).json({ 
+                    error: error.message,
+                    code: error.code 
+                });
+            } else {
+                res.status(500).json({ 
+                    error: "Kunde inte kontrollera betalningsstatus",
+                    code: ErrorCode.INTERNAL_ERROR
+                });
+            }
         }
     };
 
-    handleTerminalCallback = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const { orderId, status, transactionId } = req.body;
-            logger.info('Terminal callback received', { orderId, status });
+    handleWebhook = async (req: Request, res: Response): Promise<void> => {
+        console.log('=== Hanterar betalnings-webhook ===');
+        const { eventType, orderId, transactionId } = req.body;
 
-            // Acknowledge callback receipt
+        try {
+            // Bekräfta mottagning av webhook
             res.status(200).json({ received: true });
 
-            // Process callback asynchronously
-            if (status === 'completed') {
-                // Fetch order details and send confirmation
-                // Implementation depends on how you store order details
+            if (eventType === 'payment.completed' && orderId) {
+                logger.info('Betalning genomförd via webhook', { orderId, transactionId });
+
+                // Hämta orderdetaljer och skicka bekräftelser
+                const { deliveryDetails } = req.body;
+                if (deliveryDetails) {
+                    const updatedDeliveryDetails: DeliveryDetails = {
+                        ...deliveryDetails,
+                        created: deliveryDetails.created || new Date(),
+                        items: this.transformOrderItems(deliveryDetails.items || [])
+                    };
+
+                    await this.deliveryService.sendPaymentConfirmation(
+                        updatedDeliveryDetails,
+                        transactionId
+                    );
+                }
             }
         } catch (error) {
-            logger.error('Terminal callback processing failed', { error });
-            res.status(500).json({ 
-                error: "Could not process terminal callback",
-                code: ErrorCode.INTERNAL_ERROR
-            });
+            logger.error('Fel vid webhook-hantering', { error });
+            // Vi svarar redan 200 OK för att undvika återförsök
         }
     };
 }

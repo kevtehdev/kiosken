@@ -1,3 +1,5 @@
+export type PaymentStatus = 'processing' | 'completed' | 'failed' | 'pending';
+
 export interface PaymentResult {
     status: PaymentStatus;
     message: string;
@@ -6,13 +8,10 @@ export interface PaymentResult {
     error?: any;
 }
 
-export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed';
-
-export type PaymentMethod = 'card' | 'swish';
-
-export interface VivaPaymentConfig {
-    apiKey: string;
-    merchantId: string;
-    terminalId: string;
-    apiUrl: string;
+export interface VivaPaymentResponse {
+    statusId: string;  // 'F' = completed, 'A' = failed, 'D' = processing
+    transactionId: string;
+    orderCode: string;
+    message?: string;
+    error?: any;
 }

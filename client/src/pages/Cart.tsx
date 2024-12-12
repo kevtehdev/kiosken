@@ -8,6 +8,7 @@ import {
     useIonToast,
     IonIcon,
     IonSpinner,
+    IonModal,
 } from "@ionic/react";
 import {
     timeOutline,
@@ -15,6 +16,7 @@ import {
     cardOutline,
     documentTextOutline,
     cartOutline,
+    closeOutline,
 } from "ionicons/icons";
 import { useCart } from "../contexts/cartContext";
 import CartItem from "../components/cart/CartItem";
@@ -34,16 +36,32 @@ interface DeliveryDetails {
     items: string[];
 }
 
+interface CardDetails {
+    number: string;
+    expMonth: string;
+    expYear: string;
+    cvc: string;
+}
+
 export default function Cart() {
-    const [deliveryLocation, setDeliveryLocation] = useState<
-        Customer | undefined
-    >();
+    const [deliveryLocation, setDeliveryLocation] = useState<Customer | undefined>();
     const [resources, setResources] = useState<any[]>([]);
     const { state, dispatch } = useCart();
     const [presentToast] = useIonToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [total, setTotal] = useState<number>(0);
     const [totalDiscount, setTotalDiscount] = useState<number>(0);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [paymentStatus, setPaymentStatus] = useState<string>('');
+    const [currentOrderId, setCurrentOrderId] = useState<string>('');
+    
+    // Add card details state
+    const [cardDetails, setCardDetails] = useState<CardDetails>({
+        number: '',
+        expMonth: '',
+        expYear: '',
+        cvc: ''
+    });
 
     useEffect(() => {
         const loadResources = async () => {
@@ -66,12 +84,10 @@ export default function Cart() {
     useEffect(() => {
         const calculateTotal = async () => {
             const total = await api.calcDiscountedTotal(state.items);
-
             let totalWithoutDiscount = state.items.reduce(
                 (sum, item) => sum + (item.price || 0) * item.quantity,
                 0
             );
-
             setTotal(total);
             setTotalDiscount(totalWithoutDiscount - total);
         };
@@ -93,8 +109,46 @@ export default function Cart() {
         );
     };
 
+    const handleCardInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setCardDetails(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const validateCardDetails = () => {
+        const { number, expMonth, expYear, cvc } = cardDetails;
+        return (
+            number.replace(/\s/g, '').length === 16 &&
+            expMonth.length === 2 &&
+            expYear.length === 2 &&
+            cvc.length === 3
+        );
+    };
+
+    const getPaymentStatusMessage = () => {
+        switch (paymentStatus) {
+            case 'processing':
+                return 'Bearbetar din betalning...';
+            case 'completed':
+                return 'Betalning genomförd!';
+            case 'failed':
+                return 'Betalningen misslyckades.';
+            default:
+                return 'Förbereder betalning...';
+        }
+    };
+
+    const clearCart = () => {
+        dispatch({ type: "CLEAR_CART" });
+        setCurrentOrderId('');
+        setPaymentStatus('');
+        setShowPaymentModal(false);
+    };
+
     async function handleSendOrder() {
-        if (!deliveryLocation || state.items.length === 0) return;
+        if (!deliveryLocation || state.items.length === 0 || !validateCardDetails()) return;
 
         setIsSubmitting(true);
         try {
@@ -111,7 +165,7 @@ export default function Cart() {
                 items: formatOrderItems(),
             };
 
-            await api.processPayment({
+            const paymentRequest = {
                 orderReference,
                 items: state.items,
                 deliveryDetails,
@@ -125,25 +179,58 @@ export default function Cart() {
                     owner: deliveryLocation.id,
                     type: "take-out",
                     "order-reference": orderReference,
-                    description: `Leveransplats: ${deliveryLocation.name} | Levereras av: ID 6`,
+                    description: `Leveransplats: ${deliveryLocation.name}`,
                 },
-            });
+            };
 
-            dispatch({ type: "CLEAR_CART" });
-            await presentToast({
-                message: `Din beställning är mottagen och behandlas nu.`,
-                duration: 3000,
-                position: "bottom",
-                color: "success",
-            });
+            setCurrentOrderId(orderReference);
+            setShowPaymentModal(true);
+            setPaymentStatus('processing');
+
+            const response = await api.processPayment(paymentRequest);
+            if (response.status === 'failed') {
+                throw new Error(response.message || 'Betalningen misslyckades');
+            }
+
+            // Start payment status checking
+            const statusCheck = setInterval(async () => {
+                try {
+                    const status = await api.checkPaymentStatus(orderReference);
+                    setPaymentStatus(status.status);
+
+                    if (status.status === 'completed') {
+                        clearInterval(statusCheck);
+                        clearCart();
+                        await presentToast({
+                            message: 'Betalning genomförd! Kvitto skickas via e-post.',
+                            duration: 3000,
+                            position: "bottom",
+                            color: "success",
+                        });
+                    } else if (status.status === 'failed') {
+                        clearInterval(statusCheck);
+                        setShowPaymentModal(false);
+                        await presentToast({
+                            message: status.message || 'Betalningen misslyckades. Försök igen.',
+                            duration: 3000,
+                            position: "bottom",
+                            color: "danger",
+                        });
+                    }
+                } catch (error) {
+                    console.error('Fel vid statuskontroll:', error);
+                }
+            }, 2000);
+
         } catch (error) {
             console.error("Ett fel uppstod:", error);
             await presentToast({
-                message: "Ett fel uppstod när beställningen skulle skickas",
+                message: error instanceof Error ? error.message : "Ett fel uppstod när beställningen skulle skickas",
                 duration: 3000,
                 position: "bottom",
                 color: "danger",
             });
+            setShowPaymentModal(false);
         } finally {
             setIsSubmitting(false);
         }
@@ -157,9 +244,7 @@ export default function Cart() {
                     {/* Leveransplats-sektion */}
                     <section className="cart-section">
                         <div className="cart-section-header">
-                            <h2 className="section-title">
-                                Välj leveransplats
-                            </h2>
+                            <h2 className="section-title">Välj leveransplats</h2>
                         </div>
                         <div className="cart-section-content">
                             <UserList onCustomerSelect={setDeliveryLocation} />
@@ -191,11 +276,7 @@ export default function Cart() {
                                             <div className="cart-total-container">
                                                 {totalDiscount > 0 && (
                                                     <span className="cart-total-discount">
-                                                        -
-                                                        {totalDiscount.toFixed(
-                                                            2
-                                                        )}{" "}
-                                                        kr
+                                                        -{totalDiscount.toFixed(2)} kr
                                                     </span>
                                                 )}
                                                 <span className="cart-total-amount">
@@ -215,67 +296,133 @@ export default function Cart() {
                                         Din varukorg är tom
                                     </h3>
                                     <p className="empty-cart-subtext">
-                                        Lägg till produkter för att komma igång
-                                        med din beställning
+                                        Lägg till produkter för att komma igång med din beställning
                                     </p>
                                 </div>
                             )}
                         </div>
                     </section>
 
+                    {/* Kortbetalning */}
+                    {state.items.length > 0 && (
+                        <section className="cart-section">
+                            <div className="cart-section-header">
+                                <h2 className="section-title">Betalning</h2>
+                            </div>
+                            <div className="cart-section-content">
+                                <div className="payment-form">
+                                    <div className="form-group">
+                                        <label htmlFor="cardNumber">Kortnummer</label>
+                                        <input
+                                            type="text"
+                                            id="cardNumber"
+                                            name="number"
+                                            value={cardDetails.number}
+                                            onChange={handleCardInputChange}
+                                            placeholder="1234 5678 9012 3456"
+                                            maxLength={16}
+                                            className="card-input"
+                                        />
+                                    </div>
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label htmlFor="expMonth">Månad</label>
+                                            <input
+                                                type="text"
+                                                id="expMonth"
+                                                name="expMonth"
+                                                value={cardDetails.expMonth}
+                                                onChange={handleCardInputChange}
+                                                placeholder="MM"
+                                                maxLength={2}
+                                                className="card-input"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="expYear">År</label>
+                                            <input
+                                                type="text"
+                                                id="expYear"
+                                                name="expYear"
+                                                value={cardDetails.expYear}
+                                                onChange={handleCardInputChange}
+                                                placeholder="YY"
+                                                maxLength={2}
+                                                className="card-input"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="cvc">CVC</label>
+                                            <input
+                                                type="text"
+                                                id="cvc"
+                                                name="cvc"
+                                                value={cardDetails.cvc}
+                                                onChange={handleCardInputChange}
+                                                placeholder="123"
+                                                maxLength={3}
+                                                className="card-input"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    )}
+
                     {/* Leveransinformation */}
                     {state.items.length > 0 && (
                         <section className="cart-section">
                             <div className="cart-section-header">
-                                <h2 className="section-title">
-                                    Om leveransprocessen
-                                </h2>
+                                <h2 className="section-title">Om leveransprocessen</h2>
                             </div>
                             <div className="cart-section-content">
                                 <ul className="delivery-steps">
                                     <li className="delivery-step">
-                                        <IonIcon
-                                            icon={timeOutline}
-                                            className="step-icon"
-                                        />
-                                        <span>
-                                            Din beställning skickas direkt till
-                                            vår dedikerade leveranspersonal
-                                        </span>
+                                        <IonIcon icon={timeOutline} className="step-icon" />
+                                        <span>Din beställning skickas direkt till vår dedikerade leveranspersonal</span>
                                     </li>
                                     <li className="delivery-step">
-                                        <IonIcon
-                                            icon={mailOutline}
-                                            className="step-icon"
-                                        />
-                                        <span>
-                                            Du får en orderbekräftelse via
-                                            e-post
-                                        </span>
+                                        <IonIcon icon={cardOutline} className="step-icon" />
+                                        <span>Säker kortbetalning direkt på sidan</span>
                                     </li>
                                     <li className="delivery-step">
-                                        <IonIcon
-                                            icon={cardOutline}
-                                            className="step-icon"
-                                        />
-                                        <span>
-                                            Betala enkelt med kort vid leverans
-                                        </span>
+                                        <IonIcon icon={mailOutline} className="step-icon" />
+                                        <span>Du får orderbekräftelse och kvitto via e-post</span>
                                     </li>
                                     <li className="delivery-step">
-                                        <IonIcon
-                                            icon={documentTextOutline}
-                                            className="step-icon"
-                                        />
-                                        <span>
-                                            Kvitto skickas till din e-post efter
-                                            betalning
-                                        </span>
+                                        <IonIcon icon={documentTextOutline} className="step-icon" />
+                                        <span>Din order levereras till vald leveransplats</span>
                                     </li>
                                 </ul>
                             </div>
                         </section>
                     )}
+
+                    {/* Betalningsmodal */}
+                    <IonModal isOpen={showPaymentModal} onDidDismiss={() => setShowPaymentModal(false)}>
+                        <div className="payment-modal">
+                            <div className="payment-modal-header">
+                                <h2>Betalning pågår</h2>
+                                <IonButton 
+                                    fill="clear" 
+                                    onClick={() => setShowPaymentModal(false)}
+                                >
+                                    <IonIcon icon={closeOutline} />
+                                </IonButton>
+                            </div>
+                            <div className="payment-modal-content">
+                                <div className="payment-status">
+                                    <IonSpinner name="circular" />
+                                    <p>{getPaymentStatusMessage()}</p>
+                                </div>
+                                <div className="payment-details">
+                                    <p>Belopp: {total.toFixed(2)} kr</p>
+                                    <p>Order ID: {currentOrderId}</p>
+                                    </div>
+                            </div>
+                        </div>
+                    </IonModal>
 
                     {/* Knappar */}
                     {state.items.length > 0 && (
@@ -295,20 +442,23 @@ export default function Cart() {
                                 className="action-button"
                                 onClick={handleSendOrder}
                                 disabled={
-                                    !deliveryLocation ||
-                                    state.items.length === 0 ||
-                                    isSubmitting
+                                    !deliveryLocation || 
+                                    state.items.length === 0 || 
+                                    isSubmitting || 
+                                    !validateCardDetails()
                                 }
                             >
                                 {isSubmitting ? (
                                     <div className="loading-spinner">
                                         <IonSpinner name="crescent" />
-                                        <span>Skickar beställning...</span>
+                                        <span>Processar betalning...</span>
                                     </div>
                                 ) : !deliveryLocation ? (
                                     "Välj leveransplats först"
+                                ) : !validateCardDetails() ? (
+                                    "Fyll i kortuppgifter"
                                 ) : (
-                                    `Skicka beställning till ${deliveryLocation.name}`
+                                    `Betala (${total.toFixed(2)} kr)`
                                 )}
                             </IonButton>
                         </div>

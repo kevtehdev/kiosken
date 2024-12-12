@@ -12,8 +12,7 @@ router.post('/process', validateSession, paymentController.processPayment);
 // Check payment status
 router.get('/status/:orderId', validateSession, paymentController.checkPaymentStatus);
 
-// Terminal callback for payment updates
-router.post('/terminal-callback', paymentController.handleTerminalCallback);
+// Payment webhook endpoint
+router.post('/webhook', paymentController.handleWebhook);
 
 export default router;
-
