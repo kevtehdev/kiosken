@@ -18,7 +18,7 @@ interface PaymentRequest {
 }
 
 export interface PaymentResult {
-    status: 'processing' | 'completed' | 'failed' | 'pending';
+    status: "processing" | "completed" | "failed" | "pending";
     message: string;
     transactionId?: string;
     orderCode?: string;
@@ -77,72 +77,84 @@ export const api = {
     // Payment Processing
     processPayment: async (data: PaymentRequest): Promise<PaymentResult> => {
         try {
-            console.log('Sending payment request:', data);
+            console.log("Sending payment request:", data);
 
             const response = await fetch(`${API_URL}/payments/process`, {
                 method: "POST",
-                headers: { 
+                headers: {
                     "Content-Type": "application/json",
-                    "Accept": "application/json"
+                    Accept: "application/json",
                 },
                 body: JSON.stringify(data),
-                credentials: 'include'
+                credentials: "include",
             });
+
+            console.log(response);
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.message || "Betalningen misslyckades");
+                throw new Error(
+                    errorData.message || "Betalningen misslyckades"
+                );
             }
 
             const result = await response.json();
-            console.log('Payment response:', result);
+            console.log("Payment response:", result);
 
-            if (result.status === 'failed') {
+            if (result.status === "failed") {
                 throw new Error(result.message || "Betalningen misslyckades");
-            }
-
-            if (!result.checkoutUrl) {
-                throw new Error("Ingen checkout-URL mottagen");
             }
 
             return result;
         } catch (error) {
-            console.error('Payment processing error:', error);
+            console.error("Payment processing error:", error);
             return {
-                status: 'failed',
-                message: error instanceof Error ? error.message : 'Betalningen misslyckades',
-                error: error
+                status: "failed",
+                message:
+                    error instanceof Error
+                        ? error.message
+                        : "Betalningen misslyckades",
+                error: error,
             };
         }
     },
 
     checkPaymentStatus: async (orderId: string): Promise<PaymentResult> => {
         try {
-            console.log('Checking payment status for order:', orderId);
+            console.log("Checking payment status for order:", orderId);
 
-            const response = await fetch(`${API_URL}/payments/status/${orderId}`, {
-                method: "GET",
-                headers: { 
-                    "Content-Type": "application/json",
-                    "Accept": "application/json"
-                },
-                credentials: 'include'
-            });
+            const response = await fetch(
+                `${API_URL}/payments/status/${orderId}`,
+                {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                    },
+                    credentials: "include",
+                }
+            );
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.message || "Kunde inte kontrollera betalningsstatus");
+                throw new Error(
+                    errorData.message ||
+                        "Kunde inte kontrollera betalningsstatus"
+                );
             }
 
             const result = await response.json();
-            console.log('Payment status response:', result);
+            console.log("Payment status response:", result);
             return result;
         } catch (error) {
-            console.error('Payment status check error:', error);
+            console.error("Payment status check error:", error);
             return {
-                status: 'failed',
-                message: error instanceof Error ? error.message : 'Kunde inte kontrollera betalningsstatus',
-                error: error
+                status: "failed",
+                message:
+                    error instanceof Error
+                        ? error.message
+                        : "Kunde inte kontrollera betalningsstatus",
+                error: error,
             };
         }
     },

@@ -21,8 +21,9 @@ import { UserList } from "../components/users/UserList";
 import { Header } from "../components/layout/Header";
 import { api, PaymentResult } from "../services/api";
 import { Customer } from "../contexts/userContext";
-import { useLocation } from 'react-router-dom';
+import { useLocation } from "react-router-dom";
 import "../styles/pages/Cart.css";
+import { API } from "@onslip/onslip-360-web-api";
 
 interface DeliveryDetails {
     orderId: string;
@@ -41,7 +42,9 @@ interface DeliveryDetails {
 }
 
 export default function Cart() {
-    const [deliveryLocation, setDeliveryLocation] = useState<Customer | undefined>();
+    const [deliveryLocation, setDeliveryLocation] = useState<
+        Customer | undefined
+    >();
     const [resources, setResources] = useState<any[]>([]);
     const { state, dispatch } = useCart();
     const [presentToast] = useIonToast();
@@ -71,21 +74,21 @@ export default function Cart() {
     useEffect(() => {
         // Hantera betalningsstatus från URL efter återkomst från Viva
         const params = new URLSearchParams(location.search);
-        const status = params.get('status');
-        const orderId = params.get('s');
+        const status = params.get("status");
+        const orderId = params.get("s");
 
         if (status && orderId) {
-            if (status === 'success') {
+            if (status === "success") {
                 clearCart();
                 presentToast({
-                    message: 'Betalning genomförd! Kvitto skickas via e-post.',
+                    message: "Betalning genomförd! Kvitto skickas via e-post.",
                     duration: 3000,
                     position: "bottom",
                     color: "success",
                 });
-            } else if (status === 'canceled') {
+            } else if (status === "canceled") {
                 presentToast({
-                    message: 'Betalningen avbröts.',
+                    message: "Betalningen avbröts.",
                     duration: 3000,
                     position: "bottom",
                     color: "warning",
@@ -114,12 +117,12 @@ export default function Cart() {
     }, [state.items]);
 
     const formatOrderItems = () => {
-        return state.items.map(item => ({
+        return state.items.map((item) => ({
             id: item.product.toString(),
             name: item["product-name"],
             quantity: item.quantity,
             price: item.price || 0,
-            totalPrice: (item.price || 0) * item.quantity
+            totalPrice: (item.price || 0) * item.quantity,
         }));
     };
 
@@ -142,7 +145,19 @@ export default function Cart() {
                 customerEmail: deliveryLocation.email!,
                 deliveryLocation: deliveryLocation.name,
                 totalAmount: total,
-                items: formatOrderItems()
+                items: formatOrderItems(),
+            };
+
+            const order: API.Order = {
+                location: 1,
+                state: "requested",
+                name: orderName,
+                items: state.items,
+                owner: deliveryLocation.id,
+                type: "take-out",
+                "order-reference": orderReference,
+                description: `Leveransplats: ${deliveryLocation.name}`,
+                "client-reference": "123",
             };
 
             const paymentRequest = {
@@ -151,34 +166,29 @@ export default function Cart() {
                 deliveryDetails,
                 customerId: deliveryLocation.id,
                 totalAmount: total,
-                order: {
-                    location: 1,
-                    state: "requested",
-                    name: orderName,
-                    items: state.items,
-                    owner: deliveryLocation.id,
-                    type: "take-out",
-                    "order-reference": orderReference,
-                    description: `Leveransplats: ${deliveryLocation.name}`,
-                },
+                order: order,
             };
 
             const response = await api.processPayment(paymentRequest);
-            
-            if (response.status === 'failed') {
-                throw new Error(response.message || 'Betalningen kunde inte initieras');
+
+            if (response.status === "failed") {
+                throw new Error(
+                    response.message || "Betalningen kunde inte initieras"
+                );
             }
 
-            if (response.checkoutUrl) {
-                window.location.href = response.checkoutUrl;
+            if (response.transactionId) {
+                window.location.href = `https://demo.vivapayments.com/web2?ref=${response.transactionId}`;
             } else {
-                throw new Error('Ingen checkout-URL mottagen');
+                throw new Error("Ingen checkout-URL mottagen");
             }
-
         } catch (error) {
             console.error("Ett fel uppstod:", error);
             await presentToast({
-                message: error instanceof Error ? error.message : "Ett fel uppstod när beställningen skulle skickas",
+                message:
+                    error instanceof Error
+                        ? error.message
+                        : "Ett fel uppstod när beställningen skulle skickas",
                 duration: 3000,
                 position: "bottom",
                 color: "danger",
@@ -196,7 +206,9 @@ export default function Cart() {
                     {/* Leveransplats-sektion */}
                     <section className="cart-section">
                         <div className="cart-section-header">
-                            <h2 className="section-title">Välj leveransplats</h2>
+                            <h2 className="section-title">
+                                Välj leveransplats
+                            </h2>
                         </div>
                         <div className="cart-section-content">
                             <UserList onCustomerSelect={setDeliveryLocation} />
@@ -228,7 +240,11 @@ export default function Cart() {
                                             <div className="cart-total-container">
                                                 {totalDiscount > 0 && (
                                                     <span className="cart-total-discount">
-                                                        -{totalDiscount.toFixed(2)} kr
+                                                        -
+                                                        {totalDiscount.toFixed(
+                                                            2
+                                                        )}{" "}
+                                                        kr
                                                     </span>
                                                 )}
                                                 <span className="cart-total-amount">
@@ -248,7 +264,8 @@ export default function Cart() {
                                         Din varukorg är tom
                                     </h3>
                                     <p className="empty-cart-subtext">
-                                        Lägg till produkter för att komma igång med din beställning
+                                        Lägg till produkter för att komma igång
+                                        med din beställning
                                     </p>
                                 </div>
                             )}
@@ -259,25 +276,50 @@ export default function Cart() {
                     {state.items.length > 0 && (
                         <section className="cart-section">
                             <div className="cart-section-header">
-                                <h2 className="section-title">Om leveransprocessen</h2>
+                                <h2 className="section-title">
+                                    Om leveransprocessen
+                                </h2>
                             </div>
                             <div className="cart-section-content">
                                 <ul className="delivery-steps">
                                     <li className="delivery-step">
-                                        <IonIcon icon={timeOutline} className="step-icon" />
-                                        <span>Din beställning skickas direkt till vår dedikerade leveranspersonal</span>
+                                        <IonIcon
+                                            icon={timeOutline}
+                                            className="step-icon"
+                                        />
+                                        <span>
+                                            Din beställning skickas direkt till
+                                            vår dedikerade leveranspersonal
+                                        </span>
                                     </li>
                                     <li className="delivery-step">
-                                        <IonIcon icon={cardOutline} className="step-icon" />
-                                        <span>Säker betalning via Viva Payments</span>
+                                        <IonIcon
+                                            icon={cardOutline}
+                                            className="step-icon"
+                                        />
+                                        <span>
+                                            Säker betalning via Viva Payments
+                                        </span>
                                     </li>
                                     <li className="delivery-step">
-                                        <IonIcon icon={mailOutline} className="step-icon" />
-                                        <span>Du får orderbekräftelse och kvitto via e-post</span>
+                                        <IonIcon
+                                            icon={mailOutline}
+                                            className="step-icon"
+                                        />
+                                        <span>
+                                            Du får orderbekräftelse och kvitto
+                                            via e-post
+                                        </span>
                                     </li>
                                     <li className="delivery-step">
-                                        <IonIcon icon={documentTextOutline} className="step-icon" />
-                                        <span>Din order levereras till vald leveransplats</span>
+                                        <IonIcon
+                                            icon={documentTextOutline}
+                                            className="step-icon"
+                                        />
+                                        <span>
+                                            Din order levereras till vald
+                                            leveransplats
+                                        </span>
                                     </li>
                                 </ul>
                             </div>
@@ -301,7 +343,11 @@ export default function Cart() {
                                 expand="block"
                                 className="action-button"
                                 onClick={handleSendOrder}
-                                disabled={!deliveryLocation || state.items.length === 0 || isSubmitting}
+                                disabled={
+                                    !deliveryLocation ||
+                                    state.items.length === 0 ||
+                                    isSubmitting
+                                }
                             >
                                 {isSubmitting ? (
                                     <div className="loading-spinner">
