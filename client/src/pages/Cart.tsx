@@ -1,4 +1,3 @@
-// client/src/pages/Cart.tsx
 import { useState, useEffect } from "react";
 import {
     IonPage,
@@ -8,7 +7,6 @@ import {
     useIonToast,
     IonIcon,
     IonSpinner,
-    IonModal,
 } from "@ionic/react";
 import {
     timeOutline,
@@ -16,14 +14,14 @@ import {
     cardOutline,
     documentTextOutline,
     cartOutline,
-    closeOutline,
 } from "ionicons/icons";
 import { useCart } from "../contexts/cartContext";
 import CartItem from "../components/cart/CartItem";
 import { UserList } from "../components/users/UserList";
 import { Header } from "../components/layout/Header";
-import { api } from "../services/api";
+import { api, PaymentResult } from "../services/api";
 import { Customer } from "../contexts/userContext";
+import { useLocation } from 'react-router-dom';
 import "../styles/pages/Cart.css";
 
 interface DeliveryDetails {
@@ -33,14 +31,13 @@ interface DeliveryDetails {
     customerEmail: string;
     deliveryLocation: string;
     totalAmount: number;
-    items: string[];
-}
-
-interface CardDetails {
-    number: string;
-    expMonth: string;
-    expYear: string;
-    cvc: string;
+    items: Array<{
+        id: string;
+        name: string;
+        quantity: number;
+        price: number;
+        totalPrice: number;
+    }>;
 }
 
 export default function Cart() {
@@ -51,17 +48,7 @@ export default function Cart() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [total, setTotal] = useState<number>(0);
     const [totalDiscount, setTotalDiscount] = useState<number>(0);
-    const [showPaymentModal, setShowPaymentModal] = useState(false);
-    const [paymentStatus, setPaymentStatus] = useState<string>('');
-    const [currentOrderId, setCurrentOrderId] = useState<string>('');
-    
-    // Add card details state
-    const [cardDetails, setCardDetails] = useState<CardDetails>({
-        number: '',
-        expMonth: '',
-        expYear: '',
-        cvc: ''
-    });
+    const location = useLocation();
 
     useEffect(() => {
         const loadResources = async () => {
@@ -80,6 +67,32 @@ export default function Cart() {
         };
         loadResources();
     }, []);
+
+    useEffect(() => {
+        // Hantera betalningsstatus från URL efter återkomst från Viva
+        const params = new URLSearchParams(location.search);
+        const status = params.get('status');
+        const orderId = params.get('s');
+
+        if (status && orderId) {
+            if (status === 'success') {
+                clearCart();
+                presentToast({
+                    message: 'Betalning genomförd! Kvitto skickas via e-post.',
+                    duration: 3000,
+                    position: "bottom",
+                    color: "success",
+                });
+            } else if (status === 'canceled') {
+                presentToast({
+                    message: 'Betalningen avbröts.',
+                    duration: 3000,
+                    position: "bottom",
+                    color: "warning",
+                });
+            }
+        }
+    }, [location]);
 
     useEffect(() => {
         const calculateTotal = async () => {
@@ -101,54 +114,21 @@ export default function Cart() {
     }, [state.items]);
 
     const formatOrderItems = () => {
-        return state.items.map(
-            (item) =>
-                `${item["product-name"]}: ${item.quantity} st - ${(
-                    (item.price ?? 0) * item.quantity
-                ).toFixed(2)} kr`
-        );
-    };
-
-    const handleCardInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setCardDetails(prev => ({
-            ...prev,
-            [name]: value
+        return state.items.map(item => ({
+            id: item.product.toString(),
+            name: item["product-name"],
+            quantity: item.quantity,
+            price: item.price || 0,
+            totalPrice: (item.price || 0) * item.quantity
         }));
-    };
-
-    const validateCardDetails = () => {
-        const { number, expMonth, expYear, cvc } = cardDetails;
-        return (
-            number.replace(/\s/g, '').length === 16 &&
-            expMonth.length === 2 &&
-            expYear.length === 2 &&
-            cvc.length === 3
-        );
-    };
-
-    const getPaymentStatusMessage = () => {
-        switch (paymentStatus) {
-            case 'processing':
-                return 'Bearbetar din betalning...';
-            case 'completed':
-                return 'Betalning genomförd!';
-            case 'failed':
-                return 'Betalningen misslyckades.';
-            default:
-                return 'Förbereder betalning...';
-        }
     };
 
     const clearCart = () => {
         dispatch({ type: "CLEAR_CART" });
-        setCurrentOrderId('');
-        setPaymentStatus('');
-        setShowPaymentModal(false);
     };
 
     async function handleSendOrder() {
-        if (!deliveryLocation || state.items.length === 0 || !validateCardDetails()) return;
+        if (!deliveryLocation || state.items.length === 0) return;
 
         setIsSubmitting(true);
         try {
@@ -162,7 +142,7 @@ export default function Cart() {
                 customerEmail: deliveryLocation.email!,
                 deliveryLocation: deliveryLocation.name,
                 totalAmount: total,
-                items: formatOrderItems(),
+                items: formatOrderItems()
             };
 
             const paymentRequest = {
@@ -183,44 +163,17 @@ export default function Cart() {
                 },
             };
 
-            setCurrentOrderId(orderReference);
-            setShowPaymentModal(true);
-            setPaymentStatus('processing');
-
             const response = await api.processPayment(paymentRequest);
+            
             if (response.status === 'failed') {
-                throw new Error(response.message || 'Betalningen misslyckades');
+                throw new Error(response.message || 'Betalningen kunde inte initieras');
             }
 
-            // Start payment status checking
-            const statusCheck = setInterval(async () => {
-                try {
-                    const status = await api.checkPaymentStatus(orderReference);
-                    setPaymentStatus(status.status);
-
-                    if (status.status === 'completed') {
-                        clearInterval(statusCheck);
-                        clearCart();
-                        await presentToast({
-                            message: 'Betalning genomförd! Kvitto skickas via e-post.',
-                            duration: 3000,
-                            position: "bottom",
-                            color: "success",
-                        });
-                    } else if (status.status === 'failed') {
-                        clearInterval(statusCheck);
-                        setShowPaymentModal(false);
-                        await presentToast({
-                            message: status.message || 'Betalningen misslyckades. Försök igen.',
-                            duration: 3000,
-                            position: "bottom",
-                            color: "danger",
-                        });
-                    }
-                } catch (error) {
-                    console.error('Fel vid statuskontroll:', error);
-                }
-            }, 2000);
+            if (response.checkoutUrl) {
+                window.location.href = response.checkoutUrl;
+            } else {
+                throw new Error('Ingen checkout-URL mottagen');
+            }
 
         } catch (error) {
             console.error("Ett fel uppstod:", error);
@@ -230,7 +183,6 @@ export default function Cart() {
                 position: "bottom",
                 color: "danger",
             });
-            setShowPaymentModal(false);
         } finally {
             setIsSubmitting(false);
         }
@@ -303,73 +255,6 @@ export default function Cart() {
                         </div>
                     </section>
 
-                    {/* Kortbetalning */}
-                    {state.items.length > 0 && (
-                        <section className="cart-section">
-                            <div className="cart-section-header">
-                                <h2 className="section-title">Betalning</h2>
-                            </div>
-                            <div className="cart-section-content">
-                                <div className="payment-form">
-                                    <div className="form-group">
-                                        <label htmlFor="cardNumber">Kortnummer</label>
-                                        <input
-                                            type="text"
-                                            id="cardNumber"
-                                            name="number"
-                                            value={cardDetails.number}
-                                            onChange={handleCardInputChange}
-                                            placeholder="1234 5678 9012 3456"
-                                            maxLength={16}
-                                            className="card-input"
-                                        />
-                                    </div>
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label htmlFor="expMonth">Månad</label>
-                                            <input
-                                                type="text"
-                                                id="expMonth"
-                                                name="expMonth"
-                                                value={cardDetails.expMonth}
-                                                onChange={handleCardInputChange}
-                                                placeholder="MM"
-                                                maxLength={2}
-                                                className="card-input"
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label htmlFor="expYear">År</label>
-                                            <input
-                                                type="text"
-                                                id="expYear"
-                                                name="expYear"
-                                                value={cardDetails.expYear}
-                                                onChange={handleCardInputChange}
-                                                placeholder="YY"
-                                                maxLength={2}
-                                                className="card-input"
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label htmlFor="cvc">CVC</label>
-                                            <input
-                                                type="text"
-                                                id="cvc"
-                                                name="cvc"
-                                                value={cardDetails.cvc}
-                                                onChange={handleCardInputChange}
-                                                placeholder="123"
-                                                maxLength={3}
-                                                className="card-input"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-                    )}
-
                     {/* Leveransinformation */}
                     {state.items.length > 0 && (
                         <section className="cart-section">
@@ -384,7 +269,7 @@ export default function Cart() {
                                     </li>
                                     <li className="delivery-step">
                                         <IonIcon icon={cardOutline} className="step-icon" />
-                                        <span>Säker kortbetalning direkt på sidan</span>
+                                        <span>Säker betalning via Viva Payments</span>
                                     </li>
                                     <li className="delivery-step">
                                         <IonIcon icon={mailOutline} className="step-icon" />
@@ -398,31 +283,6 @@ export default function Cart() {
                             </div>
                         </section>
                     )}
-
-                    {/* Betalningsmodal */}
-                    <IonModal isOpen={showPaymentModal} onDidDismiss={() => setShowPaymentModal(false)}>
-                        <div className="payment-modal">
-                            <div className="payment-modal-header">
-                                <h2>Betalning pågår</h2>
-                                <IonButton 
-                                    fill="clear" 
-                                    onClick={() => setShowPaymentModal(false)}
-                                >
-                                    <IonIcon icon={closeOutline} />
-                                </IonButton>
-                            </div>
-                            <div className="payment-modal-content">
-                                <div className="payment-status">
-                                    <IonSpinner name="circular" />
-                                    <p>{getPaymentStatusMessage()}</p>
-                                </div>
-                                <div className="payment-details">
-                                    <p>Belopp: {total.toFixed(2)} kr</p>
-                                    <p>Order ID: {currentOrderId}</p>
-                                    </div>
-                            </div>
-                        </div>
-                    </IonModal>
 
                     {/* Knappar */}
                     {state.items.length > 0 && (
@@ -441,24 +301,17 @@ export default function Cart() {
                                 expand="block"
                                 className="action-button"
                                 onClick={handleSendOrder}
-                                disabled={
-                                    !deliveryLocation || 
-                                    state.items.length === 0 || 
-                                    isSubmitting || 
-                                    !validateCardDetails()
-                                }
+                                disabled={!deliveryLocation || state.items.length === 0 || isSubmitting}
                             >
                                 {isSubmitting ? (
                                     <div className="loading-spinner">
                                         <IonSpinner name="crescent" />
-                                        <span>Processar betalning...</span>
+                                        <span>Förbereder betalning...</span>
                                     </div>
                                 ) : !deliveryLocation ? (
                                     "Välj leveransplats först"
-                                ) : !validateCardDetails() ? (
-                                    "Fyll i kortuppgifter"
                                 ) : (
-                                    `Betala (${total.toFixed(2)} kr)`
+                                    `Gå till betalning (${total.toFixed(2)} kr)`
                                 )}
                             </IonButton>
                         </div>

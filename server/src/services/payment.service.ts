@@ -7,68 +7,66 @@ class PaymentService {
     private config = {
         apiKey: env.viva.apiKey,
         merchantId: env.viva.merchantId,
+        baseUrl: env.viva.apiUrl,
     };
 
     private getHeaders(): Record<string, string> {
         return {
-            'x-api-key': this.config.apiKey,
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'Authorization': `Basic ${Buffer.from(this.config.merchantId + ':' + this.config.apiKey).toString('base64')}`
         };
     }
 
-    async processCardPayment(amount: number, orderId: string): Promise<PaymentResult> {
-        console.log('=== Starting card payment process ===');
-        console.log('Configuration:', {
-            merchantId: this.config.merchantId,
-            apiKey: 'XXXX' + this.config.apiKey.slice(-4)
-        });
-        console.log('Payment details:', { amount, orderId });
+    async createSmartCheckoutOrder(amount: number, orderId: string): Promise<PaymentResult> {
+        console.log('=== Creating Smart Checkout Order ===');
+        console.log('Order details:', { amount, orderId });
 
         try {
             if (!this.validateConfig()) {
-                console.error('Invalid payment configuration');
                 throw new ApplicationError('Payment configuration missing', 500);
             }
 
             const amountInCents = Math.round(amount * 100);
-            const apiUrl = `${env.viva.apiUrl}/nativecheckout/v2/transactions?merchantId=${encodeURIComponent(this.config.merchantId)}`;
+            // Använd smart checkout endpoint
+            const apiUrl = `${this.config.baseUrl}/checkout/v2/orders`;
 
             const payload = {
                 amount: amountInCents,
-                preauth: false,
                 merchantTrns: orderId,
                 customerTrns: orderId,
-                currencyCode: 752, // SEK
-                paymentTimeout: 300,
                 sourceCode: "Default",
+                paymentTimeout: 1800,
+                preauth: false,
                 allowRecurring: false,
                 maxInstallments: 0,
+                currencyCode: 752, // SEK
+                customer: {
+                    email: "",
+                    fullName: "",
+                    phone: "",
+                    countryCode: "SE",
+                    requestLang: "sv-SE"
+                },
                 paymentNotification: true,
-                tipAmount: 0,
                 disableExactAmount: false,
                 disableCash: true,
-                disableWallet: false
+                disableWallet: false,
+                tipAmount: 0,
+                cancelUrl: `${env.cors.origin}/cart?status=canceled`,
+                successUrl: `${env.cors.origin}/cart?status=success`
             };
 
-            const headers = this.getHeaders();
-
-            console.log('API URL:', apiUrl);
-            console.log('Request payload:', payload);
-            console.log('Request headers:', {
-                ...headers,
-                'x-api-key': 'XXXX' + this.config.apiKey.slice(-4)
+            console.log('Creating order with payload:', payload);
+            console.log('Using headers:', {
+                ...this.getHeaders(),
+                'Authorization': 'Basic ****' // Dölj credentials i loggen
             });
 
             const response = await fetch(apiUrl, {
                 method: 'POST',
-                headers,
+                headers: this.getHeaders(),
                 body: JSON.stringify(payload)
-            });
-
-            console.log('Viva API Response status:', response.status);
-            console.log('Response headers:', {
-                ...Object.fromEntries(response.headers.entries())
             });
 
             const responseText = await response.text();
@@ -82,10 +80,11 @@ class PaymentService {
                     errorData = { message: responseText };
                 }
 
-                console.error('Payment initiation failed:', {
+                console.error('Order creation failed:', {
                     status: response.status,
                     statusText: response.statusText,
-                    error: errorData
+                    error: errorData,
+                    headers: response.headers
                 });
 
                 return {
@@ -95,66 +94,40 @@ class PaymentService {
                 };
             }
 
-            let responseData;
-            try {
-                responseData = JSON.parse(responseText);
-            } catch (e) {
-                console.error('Failed to parse successful response:', e);
-                return {
-                    status: 'failed',
-                    message: 'Invalid response from payment provider',
-                    error: { raw: responseText }
-                };
-            }
-
-            console.log('Viva API Response data:', responseData);
-
-            if (!responseData.orderCode) {
-                return {
-                    status: 'failed',
-                    message: 'Missing orderCode in response',
-                    error: responseData
-                };
-            }
+            const responseData = JSON.parse(responseText);
+            console.log('Order created successfully:', responseData);
 
             return {
                 status: 'processing',
-                message: 'Payment initiated',
-                transactionId: responseData.orderCode
+                message: 'Payment order created',
+                transactionId: responseData.orderCode,
+                checkoutUrl: responseData.redirectToAcsUrl || responseData.checkoutUrl
             };
 
         } catch (error) {
-            console.error('Payment process error:', error);
+            console.error('Order creation error:', error);
             return {
                 status: 'failed',
-                message: error instanceof Error ? error.message : 'Unexpected payment error',
+                message: error instanceof Error ? error.message : 'Unexpected error during order creation',
                 error
             };
         }
     }
 
-    async checkPaymentStatus(orderId: string): Promise<PaymentResult> {
-        console.log('=== Checking payment status ===');
+    async getOrderDetails(orderId: string): Promise<PaymentResult> {
+        console.log('=== Getting order details ===');
         console.log('Order ID:', orderId);
-        
+
         try {
-            const url = `${env.viva.apiUrl}/nativecheckout/v2/transactions/${orderId}?merchantId=${encodeURIComponent(this.config.merchantId)}`;
-            console.log('Request URL:', url);
-
-            const headers = this.getHeaders();
-
-            console.log('Status check headers:', {
-                ...headers,
-                'x-api-key': 'XXXX' + this.config.apiKey.slice(-4)
-            });
-
+            const url = `${this.config.baseUrl}/checkout/v2/orders/${orderId}`;
+            
             const response = await fetch(url, {
                 method: 'GET',
-                headers
+                headers: this.getHeaders()
             });
 
             const responseText = await response.text();
-            console.log('Raw status response:', responseText);
+            console.log('Raw order details response:', responseText);
 
             if (!response.ok) {
                 let errorData;
@@ -164,12 +137,6 @@ class PaymentService {
                     errorData = { message: responseText };
                 }
 
-                console.error('Status check failed:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    error: errorData
-                });
-
                 return {
                     status: 'failed',
                     message: this.getErrorMessage(response.status, errorData),
@@ -177,99 +144,83 @@ class PaymentService {
                 };
             }
 
-            let result;
-            try {
-                result = JSON.parse(responseText);
-            } catch (e) {
-                console.error('Failed to parse status response:', e);
-                return {
-                    status: 'failed',
-                    message: 'Invalid status response from payment provider',
-                    error: { raw: responseText }
-                };
-            }
-
-            console.log('Status check response data:', result);
-            return this.formatPaymentResponse(result);
+            const orderData = JSON.parse(responseText);
+            return this.formatOrderResponse(orderData);
 
         } catch (error) {
-            console.error('Payment status check error:', error);
+            console.error('Error getting order details:', error);
             return {
                 status: 'failed',
-                message: 'Could not check payment status',
+                message: 'Could not get order details',
                 error
             };
-        }
-    }
-
-    private getErrorMessage(status: number, errorData: any): string {
-        switch (status) {
-            case 401:
-                return 'Authentication failed. Please check API key.';
-            case 403:
-                return 'Access denied. Please verify API key permissions.';
-            case 404:
-                return 'Payment resource not found.';
-            case 400:
-                return errorData.message || 'Invalid payment request.';
-            case 500:
-                return 'Payment service temporarily unavailable.';
-            default:
-                return errorData.message || `Payment failed with status ${status}`;
         }
     }
 
     private validateConfig(): boolean {
         const configStatus = {
             hasMerchantId: Boolean(this.config.merchantId),
-            hasApiKey: Boolean(this.config.apiKey)
+            hasApiKey: Boolean(this.config.apiKey),
+            hasBaseUrl: Boolean(this.config.baseUrl)
         };
         
         console.log('Config validation status:', configStatus);
         
-        const isValid = Object.values(configStatus).every(Boolean);
-        console.log('Config validation result:', isValid);
-        
-        return isValid;
+        return Object.values(configStatus).every(Boolean);
     }
 
-    private formatPaymentResponse(result: any): PaymentResult {
-        console.log('Formatting payment response for status:', result.statusId || result.StatusId);
-        
-        const response = {
-            status: 'pending',
-            message: '',
-            transactionId: result.orderCode || result.OrderCode
-        } as PaymentResult;
-
-        const status = (result.statusId || result.StatusId || '').toUpperCase();
-
-        // Viva status codes
+    private getErrorMessage(status: number, errorData: any): string {
         switch (status) {
-            case 'F':
-            case 'COMPLETED':
-                response.status = 'completed';
-                response.message = 'Payment completed successfully';
-                break;
-            case 'A':
-            case 'CANCELED':
-            case 'FAILED':
-                response.status = 'failed';
-                response.message = result.message || 'Payment failed';
-                response.error = result.error;
-                break;
-            case 'D':
-            case 'PROCESSING':
-                response.status = 'processing';
-                response.message = 'Payment is being processed';
-                break;
+            case 401:
+                return 'Authentication failed. Please check API credentials.';
+            case 403:
+                return 'Access denied. Please verify API permissions.';
+            case 404:
+                return 'Order not found.';
+            case 400:
+                return errorData.message || 'Invalid request.';
+            case 500:
+                return 'Payment service temporarily unavailable.';
             default:
-                response.status = 'pending';
-                response.message = 'Payment status unknown';
+                return errorData.message || `Request failed with status ${status}`;
         }
+    }
 
-        console.log('Formatted response:', response);
-        return response;
+    private formatOrderResponse(orderData: any): PaymentResult {
+        const stateMap: Record<string, PaymentStatus> = {
+            'PENDING': 'pending',
+            'EXPIRED': 'failed',
+            'CANCELED': 'failed',
+            'PAID': 'completed',
+            'FAILED': 'failed'
+        };
+
+        return {
+            status: stateMap[orderData.state] || 'pending',
+            message: this.getStateMessage(orderData.state),
+            transactionId: orderData.orderCode,
+            checkoutUrl: orderData.redirectToAcsUrl || orderData.checkoutUrl,
+            amount: orderData.amount / 100,
+            customerEmail: orderData.customer?.email,
+            paymentMethod: orderData.paymentMethod
+        };
+    }
+
+    private getStateMessage(state: string): string {
+        switch (state) {
+            case 'PENDING':
+                return 'Waiting for payment';
+            case 'EXPIRED':
+                return 'Payment session expired';
+            case 'CANCELED':
+                return 'Payment was canceled';
+            case 'PAID':
+                return 'Payment completed successfully';
+            case 'FAILED':
+                return 'Payment failed';
+            default:
+                return 'Unknown payment state';
+        }
     }
 }
 

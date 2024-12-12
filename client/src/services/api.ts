@@ -17,11 +17,15 @@ interface PaymentRequest {
     order: any;
 }
 
-interface PaymentStatus {
-    status: 'processing' | 'completed' | 'failed';
+export interface PaymentResult {
+    status: 'processing' | 'completed' | 'failed' | 'pending';
     message: string;
     transactionId?: string;
     orderCode?: string;
+    checkoutUrl?: string;
+    amount?: number;
+    customerEmail?: string;
+    paymentMethod?: string;
     error?: any;
 }
 
@@ -71,7 +75,7 @@ export const api = {
     },
 
     // Payment Processing
-    processPayment: async (data: PaymentRequest): Promise<PaymentStatus> => {
+    processPayment: async (data: PaymentRequest): Promise<PaymentResult> => {
         try {
             const response = await fetch(`${API_URL}/payments/process`, {
                 method: "POST",
@@ -87,7 +91,8 @@ export const api = {
                 throw new Error(errorData.message || "Betalningen misslyckades");
             }
 
-            return await response.json();
+            const result: PaymentResult = await response.json();
+            return result;
         } catch (error) {
             console.error('Payment processing error:', error);
             return {
@@ -98,7 +103,7 @@ export const api = {
         }
     },
 
-    checkPaymentStatus: async (orderId: string): Promise<PaymentStatus> => {
+    checkPaymentStatus: async (orderId: string): Promise<PaymentResult> => {
         try {
             const response = await fetch(`${API_URL}/payments/status/${orderId}`, {
                 method: "GET",
@@ -110,7 +115,8 @@ export const api = {
                 throw new Error(errorData.message || "Kunde inte kontrollera betalningsstatus");
             }
 
-            return await response.json();
+            const result: PaymentResult = await response.json();
+            return result;
         } catch (error) {
             console.error('Payment status check error:', error);
             return {
@@ -133,7 +139,7 @@ export const api = {
         return total;
     },
 
-    // Delivery
+    // Resten av metoderna förblir oförändrade...
     sendDeliveryNotification: async (deliveryDetails: any) => {
         const response = await fetch(`${API_URL}/delivery/notifications`, {
             method: "POST",

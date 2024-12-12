@@ -86,57 +86,6 @@
     font-weight: 700;
 }
 
-/* Payment Form Styles */
-.payment-form {
-    background: var(--gray-50);
-    border: 1px solid var(--gray-200);
-    padding: var(--spacing-lg);
-}
-
-.form-group {
-    margin-bottom: var(--spacing-md);
-}
-
-.form-group label {
-    display: block;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--ion-text-color);
-    margin-bottom: var(--spacing-xs);
-}
-
-.form-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--spacing-md);
-}
-
-.card-input {
-    width: 100%;
-    padding: var(--spacing-sm);
-    border: 1px solid var(--gray-300);
-    border-radius: 4px;
-    font-size: 1rem;
-    color: var(--ion-text-color);
-    background: var(--white);
-    transition: border-color 0.2s ease;
-}
-
-.card-input:focus {
-    outline: none;
-    border-color: var(--ion-color-primary);
-    box-shadow: 0 0 0 2px rgba(var(--ion-color-primary-rgb), 0.1);
-}
-
-.card-input::placeholder {
-    color: var(--gray-400);
-}
-
-.card-input.error {
-    border-color: var(--ion-color-danger);
-}
-
-/* Cart Actions */
 .cart-actions {
     position: sticky;
     bottom: 0;
@@ -219,65 +168,6 @@
     gap: var(--spacing-sm);
 }
 
-/* Payment Modal Styles */
-.payment-modal {
-    padding: var(--spacing-md);
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    background: var(--white);
-}
-
-.payment-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-bottom: var(--spacing-md);
-    border-bottom: 1px solid var(--gray-200);
-}
-
-.payment-modal-header h2 {
-    margin: 0;
-    font-size: 1.5rem;
-    font-weight: 600;
-}
-
-.payment-modal-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: var(--spacing-xl);
-    text-align: center;
-}
-
-.payment-status {
-    margin-bottom: var(--spacing-xl);
-}
-
-.payment-status ion-spinner {
-    width: 48px;
-    height: 48px;
-    margin-bottom: var(--spacing-md);
-}
-
-.payment-status p {
-    font-size: 1.2rem;
-    color: var(--ion-text-color);
-    margin: var(--spacing-md) 0;
-}
-
-.payment-details {
-    font-size: 0.95rem;
-    color: var(--ion-text-color-medium);
-    text-align: center;
-}
-
-.payment-details p {
-    margin: var(--spacing-sm) 0;
-}
-
 @media (max-width: 768px) {
     .cart-container {
         padding: var(--spacing-sm);
@@ -291,24 +181,5 @@
 
     .section-title {
         font-size: 1.2rem;
-    }
-
-    .payment-modal-content {
-        padding: var(--spacing-md);
-    }
-
-    .form-row {
-        grid-template-columns: repeat(2, 1fr);
-        gap: var(--spacing-sm);
-    }
-
-    .payment-form {
-        padding: var(--spacing-md);
-    }
-}
-
-@media (max-width: 480px) {
-    .form-row {
-        grid-template-columns: 1fr;
     }
 }

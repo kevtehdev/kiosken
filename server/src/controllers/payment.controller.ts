@@ -4,7 +4,7 @@ import PaymentService from "../services/payment.service";
 import { OnslipService } from "../services/onslip.service";
 import { DeliveryService } from "../services/delivery.service";
 import { ApplicationError, ErrorCode } from '../middleware/error.middleware';
-import { DeliveryDetails, OrderItem } from '../types/delivery.types';
+import { DeliveryDetails } from '../types/delivery.types';
 
 export class PaymentController {
     private paymentService: typeof PaymentService;
@@ -17,6 +17,124 @@ export class PaymentController {
         this.deliveryService = new DeliveryService();
     }
 
+    processPayment = async (req: Request, res: Response): Promise<void> => {
+        console.log('=== Processing payment request ===');
+        console.log('Request body:', req.body);
+
+        try {
+            if (!this.validatePaymentRequest(req.body)) {
+                throw new ApplicationError(
+                    'Invalid payment request',
+                    400,
+                    ErrorCode.VALIDATION_ERROR
+                );
+            }
+
+            const { deliveryDetails, order, totalAmount } = req.body;
+
+            // Create order in Onslip first
+            await this.onslipService.addOrder(order);
+            logger.info('Order added to Onslip', { orderId: deliveryDetails.orderId });
+
+            // Process the delivery order
+            await this.deliveryService.processNewOrder(deliveryDetails);
+
+            // Create Smart Checkout payment order
+            const paymentResult = await this.paymentService.createSmartCheckoutOrder(
+                totalAmount,
+                deliveryDetails.orderId
+            );
+
+            logger.info('Payment initiated', {
+                orderId: deliveryDetails.orderId,
+                status: paymentResult.status
+            });
+
+            res.json(paymentResult);
+        } catch (error) {
+            logger.error('Payment processing error:', error);
+            if (error instanceof ApplicationError) {
+                res.status(error.status).json({
+                    error: error.message,
+                    code: error.code
+                });
+            } else {
+                res.status(500).json({
+                    error: "Could not process payment",
+                    code: ErrorCode.INTERNAL_ERROR
+                });
+            }
+        }
+    };
+
+    checkPaymentStatus = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const { orderId } = req.params;
+            
+            if (!orderId) {
+                throw new ApplicationError(
+                    'Order ID missing',
+                    400,
+                    ErrorCode.VALIDATION_ERROR
+                );
+            }
+
+            const status = await this.paymentService.getOrderDetails(orderId);
+
+            // If payment is completed, send confirmations
+            if (status.status === 'completed' && req.body.deliveryDetails) {
+                await this.deliveryService.sendPaymentConfirmation(
+                    req.body.deliveryDetails,
+                    orderId
+                );
+            }
+
+            res.json(status);
+        } catch (error) {
+            logger.error('Status check error:', error);
+            res.status(500).json({
+                error: "Could not check payment status",
+                code: ErrorCode.INTERNAL_ERROR
+            });
+        }
+    };
+
+    handleWebhook = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const { eventType, orderId } = req.body;
+            logger.info('Payment webhook received', { 
+                eventType, 
+                orderId,
+                body: req.body 
+            });
+
+            // Bekräfta mottagandet direkt
+            res.status(200).json({ received: true });
+
+            if (eventType === 'payment.completed' && orderId) {
+                const status = await this.paymentService.getOrderDetails(orderId);
+                
+                if (status.status === 'completed' && req.body.deliveryDetails) {
+                    await this.deliveryService.sendPaymentConfirmation(
+                        req.body.deliveryDetails,
+                        orderId
+                    );
+
+                    logger.info('Payment confirmation sent', { 
+                        orderId,
+                        eventType 
+                    });
+                }
+            }
+        } catch (error) {
+            logger.error('Webhook handling error:', {
+                error,
+                body: req.body
+            });
+            // Vi har redan svarat 200 OK, så vi loggar bara felet
+        }
+    };
+
     private validatePaymentRequest(body: any): boolean {
         return Boolean(
             body &&
@@ -26,155 +144,6 @@ export class PaymentController {
             body.totalAmount > 0
         );
     }
-
-    private transformOrderItems(orderItems: any[]): OrderItem[] {
-        if (!Array.isArray(orderItems)) return [];
-        
-        return orderItems.map(item => ({
-            id: item.product?.toString() || '',
-            name: item['product-name'] || item.name || '',
-            quantity: Number(item.quantity) || 0,
-            price: Number(item.price) || 0,
-            totalPrice: (Number(item.quantity) || 0) * (Number(item.price) || 0)
-        }));
-    }
-
-    processPayment = async (req: Request, res: Response): Promise<void> => {
-        console.log('=== Processar betalning ===');
-        console.log('Request body:', req.body);
-
-        try {
-            if (!this.validatePaymentRequest(req.body)) {
-                throw new ApplicationError(
-                    'Ogiltig betalningsförfrågan',
-                    400,
-                    ErrorCode.VALIDATION_ERROR
-                );
-            }
-
-            const { deliveryDetails, order, totalAmount } = req.body;
-            const orderItems = this.transformOrderItems(order.items);
-
-            const updatedDeliveryDetails: DeliveryDetails = {
-                ...deliveryDetails,
-                items: orderItems,
-                created: new Date(),
-            };
-
-            // Lägg till order i Onslip
-            await this.onslipService.addOrder(order);
-            logger.info('Order tillagd i Onslip', { 
-                orderId: updatedDeliveryDetails.orderId 
-            });
-
-            // Initiera orderprocessen
-            await this.deliveryService.processNewOrder(updatedDeliveryDetails);
-
-            // Initiera betalning
-            const paymentStatus = await this.paymentService.processCardPayment(
-                totalAmount,
-                updatedDeliveryDetails.orderId
-            );
-
-            logger.info('Betalning initierad', {
-                orderId: updatedDeliveryDetails.orderId,
-                status: paymentStatus.status
-            });
-
-            res.json(paymentStatus);
-        } catch (error) {
-            logger.error('Fel vid betalningsprocessing', { error });
-            if (error instanceof ApplicationError) {
-                res.status(error.status).json({ 
-                    error: error.message,
-                    code: error.code 
-                });
-            } else {
-                res.status(500).json({ 
-                    error: "Kunde inte processa betalningen",
-                    code: ErrorCode.INTERNAL_ERROR
-                });
-            }
-        }
-    };
-
-    checkPaymentStatus = async (req: Request, res: Response): Promise<void> => {
-        console.log('=== Kontrollerar betalningsstatus ===');
-        const { orderId } = req.params;
-        
-        try {
-            if (!orderId) {
-                throw new ApplicationError(
-                    'Order ID saknas',
-                    400,
-                    ErrorCode.VALIDATION_ERROR
-                );
-            }
-
-            const status = await this.paymentService.checkPaymentStatus(orderId);
-            
-            if (status.status === 'completed' && status.transactionId) {
-                const { deliveryDetails } = req.body;
-                const updatedDeliveryDetails: DeliveryDetails = {
-                    ...deliveryDetails,
-                    created: deliveryDetails.created || new Date(),
-                    items: this.transformOrderItems(deliveryDetails.items || [])
-                };
-
-                await this.deliveryService.sendPaymentConfirmation(
-                    updatedDeliveryDetails,
-                    status.transactionId
-                );
-            }
-
-            res.json(status);
-        } catch (error) {
-            logger.error('Fel vid statuskontroll', { error });
-            if (error instanceof ApplicationError) {
-                res.status(error.status).json({ 
-                    error: error.message,
-                    code: error.code 
-                });
-            } else {
-                res.status(500).json({ 
-                    error: "Kunde inte kontrollera betalningsstatus",
-                    code: ErrorCode.INTERNAL_ERROR
-                });
-            }
-        }
-    };
-
-    handleWebhook = async (req: Request, res: Response): Promise<void> => {
-        console.log('=== Hanterar betalnings-webhook ===');
-        const { eventType, orderId, transactionId } = req.body;
-
-        try {
-            // Bekräfta mottagning av webhook
-            res.status(200).json({ received: true });
-
-            if (eventType === 'payment.completed' && orderId) {
-                logger.info('Betalning genomförd via webhook', { orderId, transactionId });
-
-                // Hämta orderdetaljer och skicka bekräftelser
-                const { deliveryDetails } = req.body;
-                if (deliveryDetails) {
-                    const updatedDeliveryDetails: DeliveryDetails = {
-                        ...deliveryDetails,
-                        created: deliveryDetails.created || new Date(),
-                        items: this.transformOrderItems(deliveryDetails.items || [])
-                    };
-
-                    await this.deliveryService.sendPaymentConfirmation(
-                        updatedDeliveryDetails,
-                        transactionId
-                    );
-                }
-            }
-        } catch (error) {
-            logger.error('Fel vid webhook-hantering', { error });
-            // Vi svarar redan 200 OK för att undvika återförsök
-        }
-    };
 }
 
 export default new PaymentController();
