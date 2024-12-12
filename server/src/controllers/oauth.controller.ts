@@ -13,14 +13,15 @@ export class OAuthController {
 
     public authorize = async (req: Request, res: Response): Promise<void> => {
         try {
-            const { authorizationUrl, codeVerifier } = await this.onslipService.generateAuthorizationUrl();
-            
+            const { authorizationUrl, codeVerifier } =
+                await this.onslipService.generateAuthorizationUrl();
+
             req.session.oauth = {
                 codeVerifier,
                 state: req.query.state as string,
             };
             await req.session.save();
-            
+
             logger.info("Generated OAuth authorization URL");
             res.json({ authorizationUrl });
         } catch (error) {
@@ -34,11 +35,17 @@ export class OAuthController {
             const oauthSession = req.session.oauth;
 
             if (error) {
-                throw new ApplicationError(`OAuth error: ${error_description || error}`, 400);
+                throw new ApplicationError(
+                    `OAuth error: ${error_description || error}`,
+                    400
+                );
             }
 
             if (!code || !oauthSession?.codeVerifier) {
-                throw new ApplicationError("Invalid OAuth callback parameters", 400);
+                throw new ApplicationError(
+                    "Invalid OAuth callback parameters",
+                    400
+                );
             }
 
             const tokenResponse = await this.onslipService.exchangeCodeForToken(
@@ -51,15 +58,30 @@ export class OAuthController {
                 throw new ApplicationError("Invalid token received", 401);
             }
 
+            OnslipService.reset(
+                tokenResponse.access_token,
+                btoa(tokenResponse.secret),
+                tokenResponse.realm
+            );
+
             delete req.session.oauth;
             await req.session.save();
 
             const redirectUrl = new URL("/config", env.cors.origin);
             redirectUrl.searchParams.set("success", "true");
             redirectUrl.searchParams.set("state", oauthSession.state || "");
-            redirectUrl.searchParams.set("hawkId", encodeURIComponent(tokenResponse.access_token));
-            redirectUrl.searchParams.set("key", encodeURIComponent(tokenResponse.secret));
-            redirectUrl.searchParams.set("realm", encodeURIComponent(tokenResponse.realm));
+            redirectUrl.searchParams.set(
+                "hawkId",
+                encodeURIComponent(tokenResponse.access_token)
+            );
+            redirectUrl.searchParams.set(
+                "key",
+                encodeURIComponent(tokenResponse.secret)
+            );
+            redirectUrl.searchParams.set(
+                "realm",
+                encodeURIComponent(tokenResponse.realm)
+            );
 
             res.redirect(redirectUrl.toString());
         } catch (error) {

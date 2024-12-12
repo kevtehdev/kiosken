@@ -6,7 +6,7 @@ export class StockController {
     private onslipService: OnslipService;
 
     constructor() {
-        this.onslipService = new OnslipService();
+        this.onslipService = OnslipService.getInstance();
     }
 
     listStockBalance = async (req: Request, res: Response) => {

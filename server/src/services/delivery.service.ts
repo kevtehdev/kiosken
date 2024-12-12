@@ -1,8 +1,8 @@
 import { API } from "@onslip/onslip-360-node-api";
 import { OnslipService } from "./onslip.service";
-import { OnslipCustomerExtended } from '../types/onslip.types';
-import { logger } from '../utils/logger';
-import { ApplicationError, ErrorCode } from '../middleware/error.middleware';
+import { OnslipCustomerExtended } from "../types/onslip.types";
+import { logger } from "../utils/logger";
+import { ApplicationError, ErrorCode } from "../middleware/error.middleware";
 
 export interface DeliveryDetails {
     orderId: string;
@@ -12,7 +12,7 @@ export interface DeliveryDetails {
     deliveryLocation: string;
     totalAmount: number;
     items: string[];
-    paymentMethod: 'card' | 'swish';
+    paymentMethod: "card" | "swish";
     deliveryNotes?: string;
 }
 
@@ -21,29 +21,32 @@ export class DeliveryService {
     private DELIVERY_STAFF_ID = 1;
 
     constructor() {
-        this.onslipService = new OnslipService();
+        this.onslipService = OnslipService.getInstance();
     }
 
     async processNewOrder(details: DeliveryDetails): Promise<void> {
         try {
-            logger.info('Processing new order', { 
+            logger.info("Processing new order", {
                 orderId: details.orderId,
-                customerName: details.customerName 
+                customerName: details.customerName,
             });
 
             await this.sendOrderConfirmation(details);
-            logger.info('Order confirmation sent to customer', { orderId: details.orderId });
+            logger.info("Order confirmation sent to customer", {
+                orderId: details.orderId,
+            });
 
             await this.sendDeliveryStaffNotification(details);
-            logger.info('Delivery staff notified', { orderId: details.orderId });
-
+            logger.info("Delivery staff notified", {
+                orderId: details.orderId,
+            });
         } catch (error) {
-            logger.error('Failed to process new order', {
+            logger.error("Failed to process new order", {
                 error,
-                orderId: details.orderId
+                orderId: details.orderId,
             });
             throw new ApplicationError(
-                'Could not process order',
+                "Could not process order",
                 500,
                 ErrorCode.INTERNAL_ERROR
             );
@@ -56,23 +59,23 @@ export class DeliveryService {
                 this.DELIVERY_STAFF_ID
             );
             if (staff) {
-                logger.info('Delivery staff found', {
+                logger.info("Delivery staff found", {
                     staffId: this.DELIVERY_STAFF_ID,
-                    staffName: staff.name
+                    staffName: staff.name,
                 });
                 return staff;
             }
-            logger.error('Delivery staff not found', {
-                staffId: this.DELIVERY_STAFF_ID
+            logger.error("Delivery staff not found", {
+                staffId: this.DELIVERY_STAFF_ID,
             });
             return null;
         } catch (error) {
-            logger.error("Error fetching delivery staff", { 
+            logger.error("Error fetching delivery staff", {
                 error,
-                staffId: this.DELIVERY_STAFF_ID
+                staffId: this.DELIVERY_STAFF_ID,
             });
             throw new ApplicationError(
-                'Could not fetch delivery staff',
+                "Could not fetch delivery staff",
                 500,
                 ErrorCode.INTERNAL_ERROR
             );
@@ -97,7 +100,7 @@ Produkter:
 ${details.items.join("\n")}
 
 Totalt belopp: ${details.totalAmount} kr
-${details.deliveryNotes ? `\nLeveransnoteringar: ${details.deliveryNotes}` : ''}
+${details.deliveryNotes ? `\nLeveransnoteringar: ${details.deliveryNotes}` : ""}
 `;
     }
 
@@ -119,18 +122,18 @@ ${details.deliveryNotes ? `\nLeveransnoteringar: ${details.deliveryNotes}` : ''}
             };
 
             await this.onslipService.doCommand(command);
-            logger.info('Email sent successfully', {
+            logger.info("Email sent successfully", {
                 recipient: recipientEmail,
-                subject
+                subject,
             });
         } catch (error) {
             logger.error("Failed to send email", {
                 error,
                 recipient: recipientEmail,
-                subject
+                subject,
             });
             throw new ApplicationError(
-                'Could not send email',
+                "Could not send email",
                 500,
                 ErrorCode.INTERNAL_ERROR
             );
@@ -160,7 +163,7 @@ Teamet på Onslip`
             );
         } catch (error) {
             throw new ApplicationError(
-                'Failed to send order confirmation',
+                "Failed to send order confirmation",
                 500,
                 ErrorCode.INTEGRATION_ERROR
             );
@@ -201,7 +204,7 @@ Teamet på Onslip`
             );
         } catch (error) {
             throw new ApplicationError(
-                'Failed to send staff notification',
+                "Failed to send staff notification",
                 500,
                 ErrorCode.INTEGRATION_ERROR
             );
@@ -256,7 +259,7 @@ Teamet på Onslip`
             }
         } catch (error) {
             throw new ApplicationError(
-                'Failed to send payment confirmation',
+                "Failed to send payment confirmation",
                 500,
                 ErrorCode.INTEGRATION_ERROR
             );
