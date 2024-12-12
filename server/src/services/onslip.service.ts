@@ -32,8 +32,6 @@ export class OnslipService {
     }
 
     public static reset(hawkId: string, secret: string, realm: string) {
-        console.log("RESETTTING");
-
         OnslipService.instance = new OnslipService(hawkId, secret, realm);
     }
 
@@ -558,8 +556,6 @@ export class OnslipService {
                 }),
             });
 
-            console.log("response", response);
-
             if (!response.ok) {
                 const errorData = (await response.json()) as {
                     error?: string;
@@ -590,10 +586,6 @@ export class OnslipService {
      * Verifierar att en token är giltig
      */
     public async verifyToken(token: OAuthTokenResponse): Promise<boolean> {
-        console.log("token", token.access_token);
-        console.log("realm", token.realm);
-        console.log("secret", btoa(token.secret));
-
         try {
             console.log("Verifying token validity...");
             const tempApi = new API(
