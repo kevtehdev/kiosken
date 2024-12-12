@@ -45,12 +45,23 @@ export class PaymentController {
                 deliveryDetails.orderId
             );
 
-            logger.info('Payment initiated', {
-                orderId: deliveryDetails.orderId,
-                status: paymentResult.status
+            logger.info('Payment result:', paymentResult);
+
+            if (!paymentResult.checkoutUrl) {
+                throw new ApplicationError(
+                    'No checkout URL received from payment provider',
+                    500,
+                    ErrorCode.INTEGRATION_ERROR
+                );
+            }
+
+            res.json({
+                status: paymentResult.status,
+                message: paymentResult.message,
+                transactionId: paymentResult.transactionId,
+                checkoutUrl: paymentResult.checkoutUrl
             });
 
-            res.json(paymentResult);
         } catch (error) {
             logger.error('Payment processing error:', error);
             if (error instanceof ApplicationError) {
@@ -80,8 +91,8 @@ export class PaymentController {
             }
 
             const status = await this.paymentService.getOrderDetails(orderId);
+            logger.info('Payment status:', status);
 
-            // If payment is completed, send confirmations
             if (status.status === 'completed' && req.body.deliveryDetails) {
                 await this.deliveryService.sendPaymentConfirmation(
                     req.body.deliveryDetails,
@@ -108,7 +119,6 @@ export class PaymentController {
                 body: req.body 
             });
 
-            // Bekräfta mottagandet direkt
             res.status(200).json({ received: true });
 
             if (eventType === 'payment.completed' && orderId) {
@@ -131,7 +141,6 @@ export class PaymentController {
                 error,
                 body: req.body
             });
-            // Vi har redan svarat 200 OK, så vi loggar bara felet
         }
     };
 

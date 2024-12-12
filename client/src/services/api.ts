@@ -77,13 +77,16 @@ export const api = {
     // Payment Processing
     processPayment: async (data: PaymentRequest): Promise<PaymentResult> => {
         try {
+            console.log('Sending payment request:', data);
+
             const response = await fetch(`${API_URL}/payments/process`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    ...data,
-                    merchantId: '0da01b54-7e65-ed11-9561-000d3adea9ab'
-                }),
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify(data),
+                credentials: 'include'
             });
 
             if (!response.ok) {
@@ -91,7 +94,17 @@ export const api = {
                 throw new Error(errorData.message || "Betalningen misslyckades");
             }
 
-            const result: PaymentResult = await response.json();
+            const result = await response.json();
+            console.log('Payment response:', result);
+
+            if (result.status === 'failed') {
+                throw new Error(result.message || "Betalningen misslyckades");
+            }
+
+            if (!result.checkoutUrl) {
+                throw new Error("Ingen checkout-URL mottagen");
+            }
+
             return result;
         } catch (error) {
             console.error('Payment processing error:', error);
@@ -105,9 +118,15 @@ export const api = {
 
     checkPaymentStatus: async (orderId: string): Promise<PaymentResult> => {
         try {
+            console.log('Checking payment status for order:', orderId);
+
             const response = await fetch(`${API_URL}/payments/status/${orderId}`, {
                 method: "GET",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                credentials: 'include'
             });
 
             if (!response.ok) {
@@ -115,7 +134,8 @@ export const api = {
                 throw new Error(errorData.message || "Kunde inte kontrollera betalningsstatus");
             }
 
-            const result: PaymentResult = await response.json();
+            const result = await response.json();
+            console.log('Payment status response:', result);
             return result;
         } catch (error) {
             console.error('Payment status check error:', error);
@@ -139,7 +159,7 @@ export const api = {
         return total;
     },
 
-    // Resten av metoderna förblir oförändrade...
+    // Delivery
     sendDeliveryNotification: async (deliveryDetails: any) => {
         const response = await fetch(`${API_URL}/delivery/notifications`, {
             method: "POST",
