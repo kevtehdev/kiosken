@@ -1,4 +1,3 @@
-// client/src/pages/Cart.tsx
 import { useState, useEffect } from "react";
 import {
     IonPage,
@@ -20,9 +19,11 @@ import { useCart } from "../contexts/cartContext";
 import CartItem from "../components/cart/CartItem";
 import { UserList } from "../components/users/UserList";
 import { Header } from "../components/layout/Header";
-import { api } from "../services/api";
+import { api, PaymentResult } from "../services/api";
 import { Customer } from "../contexts/userContext";
+import { useLocation } from "react-router-dom";
 import "../styles/pages/Cart.css";
+import { API } from "@onslip/onslip-360-web-api";
 
 interface DeliveryDetails {
     orderId: string;
@@ -31,7 +32,13 @@ interface DeliveryDetails {
     customerEmail: string;
     deliveryLocation: string;
     totalAmount: number;
-    items: string[];
+    items: Array<{
+        id: string;
+        name: string;
+        quantity: number;
+        price: number;
+        totalPrice: number;
+    }>;
 }
 
 export default function Cart() {
@@ -44,6 +51,7 @@ export default function Cart() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [total, setTotal] = useState<number>(0);
     const [totalDiscount, setTotalDiscount] = useState<number>(0);
+    const location = useLocation();
 
     useEffect(() => {
         const loadResources = async () => {
@@ -64,14 +72,38 @@ export default function Cart() {
     }, []);
 
     useEffect(() => {
+        // Hantera betalningsstatus från URL efter återkomst från Viva
+        const params = new URLSearchParams(location.search);
+        const status = params.get("status");
+        const orderId = params.get("s");
+
+        if (status && orderId) {
+            if (status === "success") {
+                clearCart();
+                presentToast({
+                    message: "Betalning genomförd! Kvitto skickas via e-post.",
+                    duration: 3000,
+                    position: "bottom",
+                    color: "success",
+                });
+            } else if (status === "canceled") {
+                presentToast({
+                    message: "Betalningen avbröts.",
+                    duration: 3000,
+                    position: "bottom",
+                    color: "warning",
+                });
+            }
+        }
+    }, [location]);
+
+    useEffect(() => {
         const calculateTotal = async () => {
             const total = await api.calcDiscountedTotal(state.items);
-
             let totalWithoutDiscount = state.items.reduce(
                 (sum, item) => sum + (item.price || 0) * item.quantity,
                 0
             );
-
             setTotal(total);
             setTotalDiscount(totalWithoutDiscount - total);
         };
@@ -85,12 +117,17 @@ export default function Cart() {
     }, [state.items]);
 
     const formatOrderItems = () => {
-        return state.items.map(
-            (item) =>
-                `${item["product-name"]}: ${item.quantity} st - ${(
-                    (item.price ?? 0) * item.quantity
-                ).toFixed(2)} kr`
-        );
+        return state.items.map((item) => ({
+            id: item.product.toString(),
+            name: item["product-name"],
+            quantity: item.quantity,
+            price: item.price || 0,
+            totalPrice: (item.price || 0) * item.quantity,
+        }));
+    };
+
+    const clearCart = () => {
+        dispatch({ type: "CLEAR_CART" });
     };
 
     async function handleSendOrder() {
@@ -111,35 +148,47 @@ export default function Cart() {
                 items: formatOrderItems(),
             };
 
-            await api.processPayment({
+            const order: API.Order = {
+                location: 1,
+                state: "requested",
+                name: orderName,
+                items: state.items,
+                owner: deliveryLocation.id,
+                type: "take-out",
+                "order-reference": orderReference,
+                description: `Leveransplats: ${deliveryLocation.name}`,
+                "client-reference": "123",
+            };
+
+            const paymentRequest = {
                 orderReference,
                 items: state.items,
                 deliveryDetails,
                 customerId: deliveryLocation.id,
                 totalAmount: total,
-                order: {
-                    location: 1,
-                    state: "requested",
-                    name: orderName,
-                    items: state.items,
-                    owner: deliveryLocation.id,
-                    type: "take-out",
-                    "order-reference": orderReference,
-                    description: `Leveransplats: ${deliveryLocation.name} | Levereras av: ID 6`,
-                },
-            });
+                order: order,
+            };
 
-            dispatch({ type: "CLEAR_CART" });
-            await presentToast({
-                message: `Din beställning är mottagen och behandlas nu.`,
-                duration: 3000,
-                position: "bottom",
-                color: "success",
-            });
+            const response = await api.processPayment(paymentRequest);
+
+            if (response.status === "failed") {
+                throw new Error(
+                    response.message || "Betalningen kunde inte initieras"
+                );
+            }
+
+            if (response.transactionId) {
+                window.location.href = `https://demo.vivapayments.com/web2?ref=${response.transactionId}`;
+            } else {
+                throw new Error("Ingen checkout-URL mottagen");
+            }
         } catch (error) {
             console.error("Ett fel uppstod:", error);
             await presentToast({
-                message: "Ett fel uppstod när beställningen skulle skickas",
+                message:
+                    error instanceof Error
+                        ? error.message
+                        : "Ett fel uppstod när beställningen skulle skickas",
                 duration: 3000,
                 position: "bottom",
                 color: "danger",
@@ -245,21 +294,21 @@ export default function Cart() {
                                     </li>
                                     <li className="delivery-step">
                                         <IonIcon
-                                            icon={mailOutline}
-                                            className="step-icon"
-                                        />
-                                        <span>
-                                            Du får en orderbekräftelse via
-                                            e-post
-                                        </span>
-                                    </li>
-                                    <li className="delivery-step">
-                                        <IonIcon
                                             icon={cardOutline}
                                             className="step-icon"
                                         />
                                         <span>
-                                            Betala enkelt med kort vid leverans
+                                            Säker betalning via Viva Payments
+                                        </span>
+                                    </li>
+                                    <li className="delivery-step">
+                                        <IonIcon
+                                            icon={mailOutline}
+                                            className="step-icon"
+                                        />
+                                        <span>
+                                            Du får orderbekräftelse och kvitto
+                                            via e-post
                                         </span>
                                     </li>
                                     <li className="delivery-step">
@@ -268,8 +317,8 @@ export default function Cart() {
                                             className="step-icon"
                                         />
                                         <span>
-                                            Kvitto skickas till din e-post efter
-                                            betalning
+                                            Din order levereras till vald
+                                            leveransplats
                                         </span>
                                     </li>
                                 </ul>
@@ -303,12 +352,12 @@ export default function Cart() {
                                 {isSubmitting ? (
                                     <div className="loading-spinner">
                                         <IonSpinner name="crescent" />
-                                        <span>Skickar beställning...</span>
+                                        <span>Förbereder betalning...</span>
                                     </div>
                                 ) : !deliveryLocation ? (
                                     "Välj leveransplats först"
                                 ) : (
-                                    `Skicka beställning till ${deliveryLocation.name}`
+                                    `Gå till betalning (${total.toFixed(2)} kr)`
                                 )}
                             </IonButton>
                         </div>

@@ -1,152 +1,237 @@
-import { PaymentResult, PaymentStatus } from '../types/payment.types';
-import { logger } from '../utils/logger';
-import { ApplicationError } from '../middleware/error.middleware';
-import { env } from '../config/environment';
+import { PaymentResult, PaymentStatus } from "../types/payment.types";
+import { logger } from "../utils/logger";
+import { ApplicationError } from "../middleware/error.middleware";
+import { env } from "../config/environment";
 
 class PaymentService {
     private config = {
-        terminalId: env.viva.terminalId,
         apiKey: env.viva.apiKey,
         merchantId: env.viva.merchantId,
+        baseUrl: env.viva.apiUrl,
     };
 
-    async processCardPayment(amount: number, orderId: string): Promise<PaymentResult> {
+    private getHeaders(): Record<string, string> {
+        return {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            Authorization: `Bearer ${this.config.merchantId}`,
+        };
+    }
+
+    async createSmartCheckoutOrder(
+        amount: number,
+        orderId: string
+    ): Promise<PaymentResult> {
+        console.log("=== Creating Smart Checkout Order ===");
+        console.log("Order details:", { amount, orderId });
+
         try {
             if (!this.validateConfig()) {
-                throw new ApplicationError('Terminal configuration missing', 500);
+                throw new ApplicationError(
+                    "Payment configuration missing",
+                    500
+                );
             }
 
-            const response = await fetch(`${process.env.VIVA_API_URL || 'https://api.vivapayments.com'}/terminals/${this.config.terminalId}/payments`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${this.config.apiKey}`,
-                    'Content-Type': 'application/json'
+            const amountInCents = Math.round(amount * 100);
+            // Använd smart checkout endpoint
+            const apiUrl = `${this.config.baseUrl}/checkout/v2/orders`;
+
+            const payload = {
+                amount: amountInCents,
+                merchantTrns: orderId,
+                customerTrns: orderId,
+                sourceCode: "Default",
+                paymentTimeout: 1800,
+                preauth: false,
+                allowRecurring: false,
+                maxInstallments: 0,
+                currencyCode: 752, // SEK
+                customer: {
+                    email: "",
+                    fullName: "",
+                    phone: "",
+                    countryCode: "SE",
+                    requestLang: "sv-SE",
                 },
-                body: JSON.stringify({
-                    amount: Math.round(amount * 100),
-                    orderId,
-                    currency: 'SEK',
-                    merchantId: this.config.merchantId
-                })
+                paymentNotification: true,
+                disableExactAmount: false,
+                disableCash: true,
+                disableWallet: false,
+                tipAmount: 0,
+                cancelUrl: `${env.cors.origin}/cart?status=canceled`,
+                successUrl: `${env.cors.origin}/cart?status=success`,
+            };
+
+            console.log("Creating order with payload:", payload);
+            console.log("Using headers:", {
+                ...this.getHeaders(),
+                Authorization: "Basic ****", // Dölj credentials i loggen
             });
 
+            const response = await fetch(apiUrl, {
+                method: "POST",
+                headers: this.getHeaders(),
+                body: JSON.stringify(payload),
+            });
+
+            console.log("res", response);
+
+            const responseText = await response.text();
+            console.log("Raw response:", responseText);
+
             if (!response.ok) {
-                const errorData = await response.json();
-                logger.error('Terminal payment initiation failed', { 
-                    status: response.status, 
+                let errorData;
+                try {
+                    errorData = JSON.parse(responseText);
+                } catch (e) {
+                    errorData = { message: responseText };
+                }
+
+                console.error("Order creation failed:", {
+                    status: response.status,
+                    statusText: response.statusText,
                     error: errorData,
-                    orderId
+                    headers: response.headers,
                 });
+
                 return {
-                    status: 'failed',
-                    message: errorData.message || 'Terminal payment initiation failed',
-                    error: errorData
+                    status: "failed",
+                    message: this.getErrorMessage(response.status, errorData),
+                    error: errorData,
                 };
             }
 
-            const result = await response.json();
-            logger.info('Payment initiated successfully', {
-                orderId,
-                transactionId: result.transactionId,
-                terminalId: this.config.terminalId
-            });
+            const responseData = JSON.parse(responseText);
+            console.log("Order created successfully:", responseData);
 
             return {
-                status: 'processing',
-                message: 'Payment initiated on terminal',
-                transactionId: result.transactionId
+                status: "processing",
+                message: "Payment order created",
+                transactionId: responseData.orderCode,
+                checkoutUrl:
+                    responseData.redirectToAcsUrl || responseData.checkoutUrl,
             };
-
         } catch (error) {
-            logger.error('Terminal payment initiation error', { error, orderId });
+            console.error("Order creation error:", error);
             return {
-                status: 'failed',
-                message: error instanceof Error ? error.message : 'Unexpected payment error',
-                error
+                status: "failed",
+                message:
+                    error instanceof Error
+                        ? error.message
+                        : "Unexpected error during order creation",
+                error,
             };
         }
     }
 
-    async checkPaymentStatus(orderId: string): Promise<PaymentResult> {
+    async getOrderDetails(orderId: string): Promise<PaymentResult> {
+        console.log("=== Getting order details ===");
+        console.log("Order ID:", orderId);
+
         try {
-            const response = await fetch(
-                `${process.env.VIVA_API_URL || 'https://api.vivapayments.com'}/terminals/${this.config.terminalId}/transactions/${orderId}`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${this.config.apiKey}`
-                    }
-                }
-            );
+            const url = `${this.config.baseUrl}/checkout/v2/orders/${orderId}`;
 
-            if (!response.ok) {
-                throw new ApplicationError('Failed to check payment status', 400);
-            }
-
-            const result = await response.json();
-            logger.info('Payment status checked', {
-                orderId,
-                status: result.status,
-                transactionId: result.transactionId
+            const response = await fetch(url, {
+                method: "GET",
+                headers: this.getHeaders(),
             });
 
-            return this.formatPaymentResponse(result);
+            const responseText = await response.text();
+            console.log("Raw order details response:", responseText);
 
+            if (!response.ok) {
+                let errorData;
+                try {
+                    errorData = JSON.parse(responseText);
+                } catch (e) {
+                    errorData = { message: responseText };
+                }
+
+                return {
+                    status: "failed",
+                    message: this.getErrorMessage(response.status, errorData),
+                    error: errorData,
+                };
+            }
+
+            const orderData = JSON.parse(responseText);
+            return this.formatOrderResponse(orderData);
         } catch (error) {
-            logger.error('Payment status check failed', { error, orderId });
+            console.error("Error getting order details:", error);
             return {
-                status: 'failed',
-                message: 'Could not check payment status',
-                error
+                status: "failed",
+                message: "Could not get order details",
+                error,
             };
         }
     }
 
     private validateConfig(): boolean {
-        const isValid = Boolean(
-            this.config.merchantId &&
-            this.config.apiKey &&
-            this.config.terminalId
-        );
+        const configStatus = {
+            hasMerchantId: Boolean(this.config.merchantId),
+            hasApiKey: Boolean(this.config.apiKey),
+            hasBaseUrl: Boolean(this.config.baseUrl),
+        };
 
-        if (!isValid) {
-            logger.error('Invalid Viva payment configuration', {
-                hasMerchantId: Boolean(this.config.merchantId),
-                hasApiKey: Boolean(this.config.apiKey),
-                hasTerminalId: Boolean(this.config.terminalId)
-            });
-        }
+        console.log("Config validation status:", configStatus);
 
-        return isValid;
+        return Object.values(configStatus).every(Boolean);
     }
 
-    private formatPaymentResponse(result: any): PaymentResult {
-        switch (result.status.toUpperCase()) {
-            case 'COMPLETED':
-                return {
-                    status: 'completed',
-                    message: 'Payment completed successfully',
-                    transactionId: result.transactionId,
-                    orderCode: result.orderCode
-                };
-            case 'FAILED':
-                return {
-                    status: 'failed',
-                    message: result.message || 'Payment failed',
-                    transactionId: result.transactionId,
-                    error: result.error
-                };
-            case 'PROCESSING':
-                return {
-                    status: 'processing',
-                    message: 'Payment is being processed',
-                    transactionId: result.transactionId
-                };
+    private getErrorMessage(status: number, errorData: any): string {
+        switch (status) {
+            case 401:
+                return "Authentication failed. Please check API credentials.";
+            case 403:
+                return "Access denied. Please verify API permissions.";
+            case 404:
+                return "Order not found.";
+            case 400:
+                return errorData.message || "Invalid request.";
+            case 500:
+                return "Payment service temporarily unavailable.";
             default:
-                return {
-                    status: 'pending',
-                    message: 'Payment status unknown',
-                    transactionId: result.transactionId
-                };
+                return (
+                    errorData.message || `Request failed with status ${status}`
+                );
+        }
+    }
+
+    private formatOrderResponse(orderData: any): PaymentResult {
+        const stateMap: Record<string, PaymentStatus> = {
+            PENDING: "pending",
+            EXPIRED: "failed",
+            CANCELED: "failed",
+            PAID: "completed",
+            FAILED: "failed",
+        };
+
+        return {
+            status: stateMap[orderData.state] || "pending",
+            message: this.getStateMessage(orderData.state),
+            transactionId: orderData.orderCode,
+            checkoutUrl: orderData.redirectToAcsUrl || orderData.checkoutUrl,
+            amount: orderData.amount / 100,
+            customerEmail: orderData.customer?.email,
+            paymentMethod: orderData.paymentMethod,
+        };
+    }
+
+    private getStateMessage(state: string): string {
+        switch (state) {
+            case "PENDING":
+                return "Waiting for payment";
+            case "EXPIRED":
+                return "Payment session expired";
+            case "CANCELED":
+                return "Payment was canceled";
+            case "PAID":
+                return "Payment completed successfully";
+            case "FAILED":
+                return "Payment failed";
+            default:
+                return "Unknown payment state";
         }
     }
 }
