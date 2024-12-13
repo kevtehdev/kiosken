@@ -10,14 +10,14 @@ class PaymentService {
         baseUrl: env.viva.apiUrl,
     };
 
-    private bearer: string | undefined = undefined;
+    private bearer: { token: string; expiresAt: Date } | undefined = undefined;
 
     private getHeaders(): Record<string, string> {
         if (this.bearer) {
             return {
                 "Content-Type": "application/json",
                 Accept: "application/json",
-                Authorization: `Bearer ${this.bearer}`,
+                Authorization: `Bearer ${this.bearer.token}`,
             };
         }
         return {
@@ -29,7 +29,7 @@ class PaymentService {
     }
 
     async setBearerToken() {
-        console.log("HEADERS", this.getHeaders);
+        console.log("Setting bearer token");
 
         const response = await fetch(
             "https://demo-accounts.vivapayments.com/connect/token",
@@ -43,18 +43,17 @@ class PaymentService {
         );
 
         if (!response.ok) {
-            console.log("token", response);
-            console.log("body", await response.text());
+            console.log("Response, not OK", response);
+            console.log("ResBody", await response.text());
             throw new Error("Failed getting access token");
         }
 
         const body = await response.json();
 
-        this.bearer = body.access_token;
-
-        console.log("token", response);
-        console.log("body", body);
-        console.log("token", this.bearer);
+        this.bearer = {
+            token: body.access_token,
+            expiresAt: new Date(Date.now() + body.expires_in),
+        };
     }
 
     async createSmartCheckoutOrder(
@@ -64,7 +63,7 @@ class PaymentService {
         console.log("=== Creating Smart Checkout Order ===");
         console.log("Order details:", { amount, orderId });
 
-        if (!this.bearer) {
+        if (!this.bearer || new Date() >= this.bearer.expiresAt) {
             await this.setBearerToken();
         }
 
