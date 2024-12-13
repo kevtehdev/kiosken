@@ -13,11 +13,11 @@ class PaymentService {
     private bearer: { token: string; expiresAt: Date } | undefined = undefined;
 
     private getHeaders(): Record<string, string> {
-        if (this.bearer && new Date() < this.bearer.expiresAt) {
+        if (this.isBearerValid()) {
             return {
                 "Content-Type": "application/json",
                 Accept: "application/json",
-                Authorization: `Bearer ${this.bearer.token}`,
+                Authorization: `Bearer ${this.bearer!.token}`,
             };
         }
         return {
@@ -26,6 +26,10 @@ class PaymentService {
                 `${this.config.merchantId}:${this.config.apiKey}`
             ).toString("base64")}`,
         };
+    }
+
+    isBearerValid(): boolean {
+        return this.bearer !== undefined && new Date() < this.bearer.expiresAt;
     }
 
     async setBearerToken() {
@@ -63,7 +67,7 @@ class PaymentService {
         console.log("=== Creating Smart Checkout Order ===");
         console.log("Order details:", { amount, orderId });
 
-        if (!this.bearer || new Date() >= this.bearer.expiresAt) {
+        if (!this.isBearerValid()) {
             await this.setBearerToken();
         }
 
