@@ -52,7 +52,7 @@ class PaymentService {
 
         this.bearer = {
             token: body.access_token,
-            expiresAt: new Date(Date.now() + body.expires_in),
+            expiresAt: new Date(Date.now() + (body.expires_in - 60) * 1000),
         };
     }
 
