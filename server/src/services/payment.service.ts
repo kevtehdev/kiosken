@@ -13,7 +13,7 @@ class PaymentService {
     private bearer: { token: string; expiresAt: Date } | undefined = undefined;
 
     private getHeaders(): Record<string, string> {
-        if (this.bearer) {
+        if (this.bearer && new Date() < this.bearer.expiresAt) {
             return {
                 "Content-Type": "application/json",
                 Accept: "application/json",
