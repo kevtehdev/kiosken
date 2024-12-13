@@ -157,7 +157,6 @@ export default function Cart() {
                 type: "take-out",
                 "order-reference": orderReference,
                 description: `Leveransplats: ${deliveryLocation.name}`,
-                "client-reference": "123",
             };
 
             const paymentRequest = {

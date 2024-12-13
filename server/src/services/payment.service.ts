@@ -41,7 +41,7 @@ class PaymentService {
                 amount: amountInCents,
                 merchantTrns: orderId,
                 customerTrns: orderId,
-                sourceCode: "Default",
+                sourceCode: "7854",
                 paymentTimeout: 1800,
                 preauth: false,
                 allowRecurring: false,
