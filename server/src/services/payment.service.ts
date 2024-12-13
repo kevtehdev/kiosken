@@ -10,12 +10,51 @@ class PaymentService {
         baseUrl: env.viva.apiUrl,
     };
 
+    private bearer: string | undefined = undefined;
+
     private getHeaders(): Record<string, string> {
+        if (this.bearer) {
+            return {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                Authorization: `Bearer ${this.bearer}`,
+            };
+        }
         return {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            Authorization: `Bearer ${this.config.merchantId}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+            Authorization: `Basic ${Buffer.from(
+                `${this.config.merchantId}:${this.config.apiKey}`
+            ).toString("base64")}`,
         };
+    }
+
+    async setBearerToken() {
+        console.log("HEADERS", this.getHeaders);
+
+        const response = await fetch(
+            "https://demo-accounts.vivapayments.com/connect/token",
+            {
+                method: "POST",
+                headers: this.getHeaders(),
+                body: new URLSearchParams({
+                    grant_type: "client_credentials",
+                }).toString(),
+            }
+        );
+
+        if (!response.ok) {
+            console.log("token", response);
+            console.log("body", await response.text());
+            throw new Error("Failed getting access token");
+        }
+
+        const body = await response.json();
+
+        this.bearer = body.access_token;
+
+        console.log("token", response);
+        console.log("body", body);
+        console.log("token", this.bearer);
     }
 
     async createSmartCheckoutOrder(
@@ -24,6 +63,10 @@ class PaymentService {
     ): Promise<PaymentResult> {
         console.log("=== Creating Smart Checkout Order ===");
         console.log("Order details:", { amount, orderId });
+
+        if (!this.bearer) {
+            await this.setBearerToken();
+        }
 
         try {
             if (!this.validateConfig()) {
@@ -66,7 +109,7 @@ class PaymentService {
             console.log("Creating order with payload:", payload);
             console.log("Using headers:", {
                 ...this.getHeaders(),
-                Authorization: "Basic ****", // Dölj credentials i loggen
+                Authorization: "Bearer ****", // Dölj credentials i loggen
             });
 
             const response = await fetch(apiUrl, {
