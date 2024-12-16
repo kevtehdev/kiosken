@@ -5,6 +5,7 @@ import { OnslipService } from "../services/onslip.service";
 import { DeliveryService } from "../services/delivery.service";
 import { ApplicationError, ErrorCode } from "../middleware/error.middleware";
 import { DeliveryDetails } from "../types/delivery.types";
+import { API } from "@onslip/onslip-360-node-api"; 
 
 export class PaymentController {
     private paymentService: typeof PaymentService;
@@ -15,6 +16,29 @@ export class PaymentController {
         this.paymentService = PaymentService;
         this.onslipService = OnslipService.getInstance();
         this.deliveryService = new DeliveryService();
+    }
+
+    private async handleSuccessfulPayment(
+        order: API.Order, 
+        orderId: string, 
+        deliveryDetails: DeliveryDetails
+    ) {
+        try {
+            // Add to journal
+            await this.onslipService.addJournalRecord(order, orderId);
+            logger.info('Transaction added to journal', { orderId });
+
+            // Send delivery confirmation
+            await this.deliveryService.sendPaymentConfirmation(
+                deliveryDetails,
+                orderId
+            );
+            
+            logger.info('Payment confirmation sent', { orderId });
+        } catch (error) {
+            logger.error('Error handling successful payment:', error);
+            throw error;
+        }
     }
 
     processPayment = async (req: Request, res: Response): Promise<void> => {
@@ -49,14 +73,6 @@ export class PaymentController {
                 );
 
             logger.info("Payment result:", paymentResult);
-
-            // if (!paymentResult.checkoutUrl) {
-            //     throw new ApplicationError(
-            //         'No checkout URL received from payment provider',
-            //         500,
-            //         ErrorCode.INTEGRATION_ERROR
-            //     );
-            // }
 
             res.json({
                 status: paymentResult.status,
@@ -96,9 +112,10 @@ export class PaymentController {
             logger.info("Payment status:", status);
 
             if (status.status === "completed" && req.body.deliveryDetails) {
-                await this.deliveryService.sendPaymentConfirmation(
-                    req.body.deliveryDetails,
-                    orderId
+                await this.handleSuccessfulPayment(
+                    req.body.order,
+                    orderId,
+                    req.body.deliveryDetails
                 );
             }
 
@@ -114,7 +131,7 @@ export class PaymentController {
 
     handleWebhook = async (req: Request, res: Response): Promise<void> => {
         try {
-            const { eventType, orderId } = req.body;
+            const { eventType, orderId, order, deliveryDetails } = req.body;
             logger.info("Payment webhook received", {
                 eventType,
                 orderId,
@@ -124,20 +141,14 @@ export class PaymentController {
             res.status(200).json({ received: true });
 
             if (eventType === "payment.completed" && orderId) {
-                const status = await this.paymentService.getOrderDetails(
-                    orderId
-                );
+                const status = await this.paymentService.getOrderDetails(orderId);
 
-                if (status.status === "completed" && req.body.deliveryDetails) {
-                    await this.deliveryService.sendPaymentConfirmation(
-                        req.body.deliveryDetails,
-                        orderId
-                    );
-
-                    logger.info("Payment confirmation sent", {
+                if (status.status === "completed" && deliveryDetails && order) {
+                    await this.handleSuccessfulPayment(
+                        order,
                         orderId,
-                        eventType,
-                    });
+                        deliveryDetails
+                    );
                 }
             }
         } catch (error) {

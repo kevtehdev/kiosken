@@ -35,7 +35,50 @@ export class OnslipService {
         OnslipService.instance = new OnslipService(hawkId, secret, realm);
     }
 
-    // API Methods
+    // Journal Methods
+    async addJournalRecord(order: API.Order, orderId: string) {
+        try {
+            if (!order.items) {
+                throw new Error('Order items are required');
+            }
+
+            const items = order.items.map(item => ({
+                ...item,
+                amount: -(item.price || 0) * (item.quantity || 1)
+            }));
+
+            const totalAmount = items.reduce((sum, item) => sum + Math.abs(item.amount), 0);
+
+            const externalRecord: API.ExternalRecord = {
+                date: new Date().toISOString(),
+                type: 'receipt',
+                'timezone-offset': new Date().getTimezoneOffset(),
+                'client-name': 'Onslip Kiosk',
+                'cashier-name': 'Onslip',
+                description: `Web order ${orderId}`,
+                receipt: {
+                    type: 'sale',
+                    items: items,
+                    payments: [{
+                        method: 'card',
+                        amount: -totalAmount,
+                        name: 'Card Payment'
+                    }],
+                    change: 0,
+                    rounding: 0,
+                    reference: orderId,
+                    'our-reference': orderId
+                }
+            };
+
+            return await this.api.addExternalRecord(0, externalRecord);
+        } catch (error) {
+            console.error('Failed to add journal record:', error);
+            throw new Error('Could not add transaction to journal');
+        }
+    }
+
+    // Regular API Methods
     async listButtonMaps() {
         return await OnslipService.instance.api.listButtonMaps();
     }
@@ -85,6 +128,7 @@ export class OnslipService {
     /**
      * Registrerar integrationen med Onslip
      */
+    
     async registerIntegration(): Promise<API.Integration> {
         try {
             console.log(
@@ -393,7 +437,6 @@ export class OnslipService {
                         quantity / requiredQuantity
                     );
                     const remainingQuantity = quantity % requiredQuantity;
-                    console.log(1 - (campaign["discount-rate"] || 0) / 100);
 
                     reducedPrice =
                         price *
@@ -423,7 +466,6 @@ export class OnslipService {
                     );
                     const discount = freeItems * price;
                     reducedPrice = price * quantity - discount;
-
                     break;
                 }
                 break;
