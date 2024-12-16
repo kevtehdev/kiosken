@@ -38,7 +38,7 @@ app.use(
                 scriptSrc: ["'self'", "'unsafe-inline'"],
                 styleSrc: ["'self'", "'unsafe-inline'"],
                 imgSrc: ["'self'", "data:", "https:"],
-                connectSrc: ["'self'", env.cors.origin],
+                connectSrc: ["'self'", ...env.cors.origin.split(",")],
             },
         },
         crossOriginEmbedderPolicy: env.nodeEnv === "production",

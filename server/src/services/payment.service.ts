@@ -105,8 +105,12 @@ class PaymentService {
                 disableCash: true,
                 disableWallet: false,
                 tipAmount: 0,
-                cancelUrl: `${env.cors.origin}/cart?status=canceled`,
-                successUrl: `${env.cors.origin}/cart?status=success`,
+                cancelUrl: `${
+                    env.cors.origin.split(",")[0]
+                }/cart?status=canceled`,
+                successUrl: `${
+                    env.cors.origin.split(",")[0]
+                }/cart?status=success`,
             };
 
             console.log("Creating order with payload:", payload);

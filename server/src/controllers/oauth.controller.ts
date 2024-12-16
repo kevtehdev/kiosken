@@ -34,6 +34,9 @@ export class OAuthController {
             const { code, error, error_description } = req.query;
             const oauthSession = req.session.oauth;
 
+            console.log("QRY", req.query);
+            console.log("SESSSION", req.session);
+
             if (error) {
                 throw new ApplicationError(
                     `OAuth error: ${error_description || error}`,
@@ -67,7 +70,10 @@ export class OAuthController {
             delete req.session.oauth;
             await req.session.save();
 
-            const redirectUrl = new URL("/config", env.cors.origin);
+            const redirectUrl = new URL(
+                "/config",
+                env.cors.origin.split(",")[0]
+            );
             redirectUrl.searchParams.set("success", "true");
             redirectUrl.searchParams.set("state", oauthSession.state || "");
             redirectUrl.searchParams.set(
@@ -88,7 +94,10 @@ export class OAuthController {
             delete req.session.oauth;
             await req.session.save();
 
-            const redirectUrl = new URL("/config", env.cors.origin);
+            const redirectUrl = new URL(
+                "/config",
+                env.cors.origin.split(",")[0]
+            );
             redirectUrl.searchParams.set("error", "true");
             redirectUrl.searchParams.set(
                 "message",
