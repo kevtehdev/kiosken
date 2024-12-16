@@ -59,6 +59,14 @@ export class OnslipService {
     async listResources() {
         return await OnslipService.instance.api.listResources();
     }
+    async getOrderByRef(ref: string): Promise<API.Order> {
+        console.log(await OnslipService.instance.api.listIntegrations());
+
+        const orderRes = await OnslipService.instance.api.listOrders(
+            `order-reference:${ref}`
+        );
+        return orderRes[0];
+    }
 
     async addResource(resource: Resource) {
         const { id, ...resourceData } = resource;
@@ -601,6 +609,60 @@ export class OnslipService {
         } catch (error) {
             console.error("Token validation error:", error);
             return false;
+        }
+    }
+
+    async addJournalRecord(order: API.Order, orderId: number) {
+        try {
+            if (!order.items) {
+                throw new Error("Order items are required");
+            }
+
+            const items = order.items.map((item) => ({
+                ...item,
+                amount: -(item.price || 0) * (item.quantity || 1),
+            }));
+
+            const totalAmount = items.reduce(
+                (sum, item) => sum + Math.abs(item.amount),
+                0
+            );
+
+            const externalRecord: API.ExternalRecord = {
+                date: new Date().toISOString(),
+                type: "receipt",
+                "timezone-offset": new Date().getTimezoneOffset(),
+                "client-name": "Onslip Kiosk",
+                "cashier-name": "Onslip",
+                description: `Web order ${orderId}`,
+                receipt: {
+                    type: "sale",
+                    items: items,
+                    payments: [
+                        {
+                            method: "card",
+                            amount: -totalAmount,
+                            name: "Card Payment",
+                        },
+                    ],
+                    change: 0,
+                    rounding: 0,
+                    reference: `${orderId}`,
+                    "our-reference": `${orderId}`,
+                },
+            };
+
+            const res = await OnslipService.instance.api.addExternalRecord(
+                1,
+                externalRecord
+            );
+
+            console.log("RECORD RES", res);
+
+            return res;
+        } catch (error) {
+            console.error("Failed to add journal record:", error);
+            throw new Error("Could not add transaction to journal");
         }
     }
 }

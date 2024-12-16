@@ -175,10 +175,11 @@ class PaymentService {
         }
     }
 
-    async getOrderDetails(orderId: string): Promise<PaymentResult> {
+    async getOrderDetails(orderId: string) {
         if (!this.isBearerValid()) {
             await this.setBearerToken();
         }
+
         console.log("=== Getting order details ===");
         console.log("Order ID:", orderId);
 
@@ -211,7 +212,8 @@ class PaymentService {
             }
 
             const orderData = JSON.parse(responseText);
-            return this.formatOrderResponse(orderData);
+            return orderData;
+            // return this.formatOrderResponse(orderData);
         } catch (error) {
             console.error("Error getting order details:", error);
             return {
