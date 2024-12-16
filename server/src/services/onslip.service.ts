@@ -36,15 +36,38 @@ export class OnslipService {
     }
 
     // Journal Methods
-    async addJournalRecord(order: API.Order, orderId: string) {
+    async addJournalRecord(order: API.Order, orderId: string): Promise<API.Stored_Record>;
+    async addJournalRecord(externalRecord: API.ExternalRecord): Promise<API.Stored_Record>;
+    async addJournalRecord(
+        orderOrRecord: API.Order | API.ExternalRecord,
+        orderId?: string
+    ): Promise<API.Stored_Record> {
+        console.log('=== Adding Journal Record ===');
+        
         try {
+            if (this.isExternalRecord(orderOrRecord)) {
+                console.log('Processing external record...');
+                return await this.api.addExternalRecord(0, orderOrRecord);
+            }
+
+            if (!orderId) {
+                throw new Error('Order ID is required for order records');
+            }
+
+            console.log('Processing order record...');
+            const order = orderOrRecord as API.Order;
+
             if (!order.items) {
                 throw new Error('Order items are required');
             }
 
             const items = order.items.map(item => ({
                 ...item,
-                amount: -(item.price || 0) * (item.quantity || 1)
+                'product-name': item['product-name'] || 'Unknown Product',
+                amount: -(item.price || 0) * (item.quantity || 1),
+                type: item.type || 'goods',
+                'vat-rate': 25, // Standard Swedish VAT
+                'vat-amount': -(item.price || 0) * (item.quantity || 1) * 0.25
             }));
 
             const totalAmount = items.reduce((sum, item) => sum + Math.abs(item.amount), 0);
@@ -71,11 +94,29 @@ export class OnslipService {
                 }
             };
 
-            return await this.api.addExternalRecord(0, externalRecord);
+            console.log('Sending record to Onslip:', {
+                ...externalRecord,
+                receipt: {
+                    ...externalRecord.receipt,
+                    items: `${externalRecord.receipt?.items.length} items`
+                }
+            });
+
+            const result = await this.api.addExternalRecord(0, externalRecord);
+            console.log('Journal record created successfully');
+            return result;
         } catch (error) {
             console.error('Failed to add journal record:', error);
+            if (error instanceof Error) {
+                console.error('Error stack:', error.stack);
+            }
             throw new Error('Could not add transaction to journal');
         }
+    }
+
+    private isExternalRecord(record: any): record is API.ExternalRecord {
+        return 'type' in record && 'date' in record && 
+               ('receipt' in record || 'batch' in record || 'report' in record);
     }
 
     // Regular API Methods
@@ -125,10 +166,6 @@ export class OnslipService {
         );
     }
 
-    /**
-     * Registrerar integrationen med Onslip
-     */
-    
     async registerIntegration(): Promise<API.Integration> {
         try {
             console.log(
@@ -153,9 +190,7 @@ export class OnslipService {
 
     async calcTotal(items: API.Item[]) {
         let discountedTotal = 0;
-
         const cartItems: API.Item[] = structuredClone(items);
-
         const sortedCart = cartItems.sort((item1, item2) => {
             if (item1.price && item2.price) {
                 return item2.price - item1.price;
@@ -164,7 +199,6 @@ export class OnslipService {
         });
 
         const campaigns = await this.listCampaigns();
-
         const multiItemCampaigns = campaigns.filter((campaign) => {
             return (
                 campaign.rules.length > 1 ||
@@ -175,14 +209,10 @@ export class OnslipService {
         multiItemCampaigns.forEach((campaign) => {
             const { amount, rules } = campaign;
 
-            if (
-                campaign.rules.length > 1 ||
-                campaign.rules[0].products.length > 1
-            ) {
+            if (campaign.rules.length > 1 || campaign.rules[0].products.length > 1) {
                 if (campaign.type === "cheapest-free") {
                     campaign.rules.forEach((rule) => {
                         const { quantity, products } = rule;
-
                         const matchedItems = products
                             .map((product) => {
                                 return sortedCart.filter(
@@ -200,7 +230,6 @@ export class OnslipService {
 
                             if (cheapestItem) {
                                 discountedTotal -= cheapestItem.price!;
-
                                 matchedItems.forEach((item) => {
                                     if (item) {
                                         item.quantity -= 1;
@@ -209,10 +238,7 @@ export class OnslipService {
                             }
                         }
                     });
-                } else if (
-                    campaign.type === "fixed-price" &&
-                    campaign.rules.length <= 1
-                ) {
+                } else if (campaign.type === "fixed-price" && campaign.rules.length <= 1) {
                     while (true) {
                         const eligibleProducts = sortedCart.filter((item) =>
                             rules.some((rule) =>
@@ -246,10 +272,7 @@ export class OnslipService {
                             break;
                         }
                     }
-                } else if (
-                    campaign.type === "fixed-amount" ||
-                    campaign.type === "percentage"
-                ) {
+                } else if (campaign.type === "fixed-amount" || campaign.type === "percentage") {
                     while (true) {
                         const eligibleProducts = sortedCart.filter((item) =>
                             rules.some((rule) =>
@@ -285,7 +308,6 @@ export class OnslipService {
                                 if (count === 0) {
                                     totalDiscountedPrice = amount!;
                                 }
-
                                 discountedTotal +=
                                     totalEligiblePrice - totalDiscountedPrice;
                             } else {
@@ -295,12 +317,10 @@ export class OnslipService {
                                             (campaign["discount-rate"] || 0)) /
                                         100;
                                 }
-
                                 discountedTotal +=
                                     totalEligiblePrice - totalDiscountedPrice;
                             }
                         }
-
                         break;
                     }
                 } else if (rules.every((rule) => rule.products.length > 1)) {
@@ -369,7 +389,6 @@ export class OnslipService {
         );
 
         const remainingTotal = prices.reduce((sum, price) => sum + price, 0);
-
         let total = discountedTotal + remainingTotal;
 
         const fullCampaigns = campaigns.filter((campaign) => {
@@ -409,28 +428,15 @@ export class OnslipService {
         }
 
         const campaign = await this.findBestCampaign(item.product!);
-
         let reducedPrice = price * quantity;
 
         if (!campaign) return reducedPrice;
-
         if (campaign.rules.length > 1) {
             return reducedPrice;
         }
 
         switch (campaign.type) {
             case "fixed-amount":
-                if (quantity >= campaign.rules[0]?.quantity) {
-                    const requiredQuantity = campaign.rules[0]?.quantity || 1;
-                    const divisibleUnits = Math.floor(
-                        quantity / requiredQuantity
-                    );
-                    reducedPrice =
-                        price * quantity -
-                        (campaign.amount || 0) * divisibleUnits;
-                    break;
-                }
-            case "percentage":
                 if (quantity >= campaign.rules[0]?.quantity) {
                     const requiredQuantity = campaign.rules[0]?.quantity || 1;
                     const divisibleUnits = Math.floor(
@@ -444,8 +450,8 @@ export class OnslipService {
                             divisibleUnits *
                             (1 - (campaign["discount-rate"] || 0) / 100) +
                         remainingQuantity * price;
-                    break;
                 }
+                break;
             case "fixed-price":
                 if (quantity >= campaign.rules[0]?.quantity) {
                     const requiredQuantity = campaign.rules[0]?.quantity || 1;
@@ -466,7 +472,6 @@ export class OnslipService {
                     );
                     const discount = freeItems * price;
                     reducedPrice = price * quantity - discount;
-                    break;
                 }
                 break;
             default:
@@ -539,9 +544,6 @@ export class OnslipService {
         );
     }
 
-    /**
-     * Genererar en auktoriserings-URL med PKCE
-     */
     public async generateAuthorizationUrl(): Promise<{
         authorizationUrl: string;
         codeVerifier: string;
@@ -572,9 +574,6 @@ export class OnslipService {
         }
     }
 
-    /**
-     * Byter ut auktoriseringskoden mot en access token
-     */
     public async exchangeCodeForToken(
         code: string,
         codeVerifier: string
@@ -624,9 +623,6 @@ export class OnslipService {
         }
     }
 
-    /**
-     * Verifierar att en token är giltig
-     */
     public async verifyToken(token: OAuthTokenResponse): Promise<boolean> {
         try {
             console.log("Verifying token validity...");

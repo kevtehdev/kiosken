@@ -5,13 +5,12 @@ import { logger } from '../utils/logger';
 
 const router = Router();
 
-// Process payment
+// Existing routes
 router.post('/process', validateSession, PaymentController.processPayment);
-
-// Check payment status
 router.get('/status/:orderId', validateSession, PaymentController.checkPaymentStatus);
-
-// Payment webhook endpoint
 router.post('/webhook', PaymentController.handleWebhook);
+
+// New route for journal entries
+router.post('/orders/journal', validateSession, PaymentController.createJournalEntry);
 
 export default router;
