@@ -206,6 +206,23 @@ export const api = {
         const res = (await response.json()) as API.StockBalance[];
         return res;
     },
+
+    verifyPayment: async (transactionId: string, orderId: string) => {
+        const response = await fetch(
+            `${API_URL}/payments/status/${transactionId}`,
+            {
+                method: "GET",
+                headers: { "Content-Type": "application/json" },
+            }
+        );
+        const res = await response.json();
+        console.log(response);
+        console.log(res);
+
+        if (!response.ok) throw new Error("Could not verify");
+
+        return res;
+    },
 };
 
 export type ApiClient = typeof api;

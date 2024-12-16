@@ -1,4 +1,4 @@
-export type PaymentStatus = 'processing' | 'completed' | 'failed' | 'pending';
+export type PaymentStatus = "processing" | "completed" | "failed" | "pending";
 
 export interface PaymentResult {
     status: PaymentStatus;
@@ -10,10 +10,11 @@ export interface PaymentResult {
     customerEmail?: string;
     paymentMethod?: string;
     error?: any;
+    statusId?: any;
 }
 
 export interface VivaPaymentResponse {
-    statusId: string;  // 'F' = completed, 'A' = failed, 'D' = processing
+    statusId: string; // 'F' = completed, 'A' = failed, 'D' = processing
     transactionId: string;
     orderCode: string;
     state?: string;
