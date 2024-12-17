@@ -118,7 +118,7 @@ export default function Cart() {
 
     const formatOrderItems = () => {
         return state.items.map((item) => ({
-            id: item.product.toString(),
+            id: item.product!.toString(),
             name: item["product-name"],
             quantity: item.quantity,
             price: item.price || 0,

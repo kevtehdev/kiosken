@@ -5,6 +5,7 @@ import { OnslipService } from "../services/onslip.service";
 import { DeliveryService } from "../services/delivery.service";
 import { ApplicationError, ErrorCode } from "../middleware/error.middleware";
 import { DeliveryDetails } from "../types/delivery.types";
+import { API } from "@onslip/onslip-360-node-api";
 
 export class PaymentController {
     private paymentService: typeof PaymentService;
@@ -30,9 +31,32 @@ export class PaymentController {
                 );
             }
 
-            const { deliveryDetails, order, totalAmount } = req.body;
+            const {
+                deliveryDetails,
+                order,
+                totalAmount,
+            }: { deliveryDetails: any; order: API.Order; totalAmount: number } =
+                req.body;
 
             console.log("BODY", req.body);
+
+            for (const item of order.items ?? []) {
+                if (!item["product-group"] || !item.price) {
+                    continue;
+                }
+
+                const productGroup = await this.onslipService.getProductGroup(
+                    item["product-group"]
+                );
+
+                item["vat-rate"] = productGroup["vat-rate"];
+                const priceWithoutVAT =
+                    item.price / (1 + item["vat-rate"] / 100);
+                item["vat-amount"] =
+                    Math.round((item.price - priceWithoutVAT) * 100) / 100;
+            }
+
+            console.log("ORDERITEMS", order.items);
 
             // Create order in Onslip first
             await this.onslipService.addOrder(order);
