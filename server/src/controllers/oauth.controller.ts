@@ -91,6 +91,10 @@ export class OAuthController {
                 "realm",
                 encodeURIComponent(tokenResponse.realm)
             );
+            redirectUrl.searchParams.set(
+                "journal",
+                encodeURIComponent(tokenResponse.journal || "")
+            );
 
             res.redirect(redirectUrl.toString());
         } catch (error) {
