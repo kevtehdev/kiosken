@@ -107,11 +107,15 @@ export class PaymentController {
             console.log("ORDER", order1);
 
             if (order.statusId === "F") {
-                const res = await this.onslipService.addJournalRecord(
-                    order1,
-                    order1.id!
-                );
-                console.log("Record", res);
+                try {
+                    const res = await this.onslipService.addJournalRecord(
+                        order1,
+                        order1.id!
+                    );
+                    console.log("Record", res);
+                } catch (error) {
+                    console.log(error);
+                }
             }
 
             res.json(order);

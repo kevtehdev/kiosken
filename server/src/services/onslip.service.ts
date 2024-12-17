@@ -60,7 +60,7 @@ export class OnslipService {
         return await OnslipService.instance.api.listResources();
     }
     async getOrderByRef(ref: string): Promise<API.Order> {
-        console.log(await OnslipService.instance.api.listIntegrations());
+        console.log("CLIENT", await OnslipService.instance.api.getClientInfo());
 
         const orderRes = await OnslipService.instance.api.listOrders(
             `order-reference:${ref}`
@@ -632,8 +632,6 @@ export class OnslipService {
                 date: new Date().toISOString(),
                 type: "receipt",
                 "timezone-offset": new Date().getTimezoneOffset(),
-                "client-name": "Onslip Kiosk",
-                "cashier-name": "Onslip",
                 description: `Web order ${orderId}`,
                 receipt: {
                     type: "sale",
@@ -653,7 +651,7 @@ export class OnslipService {
             };
 
             const res = await OnslipService.instance.api.addExternalRecord(
-                1,
+                9,
                 externalRecord
             );
 

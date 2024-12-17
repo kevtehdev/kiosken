@@ -56,6 +56,8 @@ export class OAuthController {
                 oauthSession.codeVerifier
             );
 
+            console.log("token", tokenResponse);
+
             const isValid = await this.onslipService.verifyToken(tokenResponse);
             if (!isValid) {
                 throw new ApplicationError("Invalid token received", 401);
