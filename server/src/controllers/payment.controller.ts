@@ -32,6 +32,8 @@ export class PaymentController {
 
             const { deliveryDetails, order, totalAmount } = req.body;
 
+            console.log("BODY", req.body);
+
             // Create order in Onslip first
             await this.onslipService.addOrder(order);
             logger.info("Order added to Onslip", {
@@ -92,17 +94,31 @@ export class PaymentController {
                 );
             }
 
-            const status = await this.paymentService.getOrderDetails(orderId);
-            logger.info("Payment status:", status);
+            const order = await this.paymentService.getOrderDetails(orderId);
+            console.log(order);
+            logger.info("Payment status:", order);
 
-            if (status.status === "completed" && req.body.deliveryDetails) {
-                await this.deliveryService.sendPaymentConfirmation(
-                    req.body.deliveryDetails,
-                    orderId
-                );
+            console.log(order.merchantTrns);
+
+            const order1 = await this.onslipService.getOrderByRef(
+                order.merchantTrns
+            );
+
+            console.log("ORDER", order1);
+
+            if (order.statusId === "F") {
+                try {
+                    const res = await this.onslipService.addJournalRecord(
+                        order1,
+                        order1.id!
+                    );
+                    console.log("Record", res);
+                } catch (error) {
+                    console.log(error);
+                }
             }
 
-            res.json(status);
+            res.json(order);
         } catch (error) {
             logger.error("Status check error:", error);
             res.status(500).json({

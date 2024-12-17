@@ -1,14 +1,24 @@
-import React, { createContext, useContext, useReducer, ReactNode, useEffect } from "react";
+import React, {
+    createContext,
+    useContext,
+    useReducer,
+    ReactNode,
+    useEffect,
+} from "react";
 import { CartItem } from "../types";
+import { API } from "@onslip/onslip-360-web-api";
 
 interface CartState {
-    items: CartItem[];
+    items: API.Item[];
 }
 
 type CartAction =
-    | { type: "ADD_ITEM"; payload: CartItem }
+    | { type: "ADD_ITEM"; payload: API.Item }
     | { type: "REMOVE_ITEM"; payload: number }
-    | { type: "UPDATE_QUANTITY"; payload: { product: number; quantity: number } }
+    | {
+          type: "UPDATE_QUANTITY";
+          payload: { product: number; quantity: number };
+      }
     | { type: "CLEAR_CART" };
 
 const initialState: CartState = {
@@ -23,14 +33,17 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
             );
             if (existingItemIndex !== -1) {
                 const updatedItems = [...state.items];
-                updatedItems[existingItemIndex].quantity += action.payload.quantity;
+                updatedItems[existingItemIndex].quantity +=
+                    action.payload.quantity;
                 return { items: updatedItems };
             }
             return { items: [...state.items, action.payload] };
         }
         case "REMOVE_ITEM":
             return {
-                items: state.items.filter((item) => item.product !== action.payload),
+                items: state.items.filter(
+                    (item) => item.product !== action.payload
+                ),
             };
         case "UPDATE_QUANTITY":
             if (action.payload.quantity <= 0) {
@@ -59,7 +72,9 @@ const CartContext = createContext<{
     dispatch: React.Dispatch<CartAction>;
 }>({ state: initialState, dispatch: () => undefined });
 
-export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const CartProvider: React.FC<{ children: ReactNode }> = ({
+    children,
+}) => {
     const [state, dispatch] = useReducer(cartReducer, initialState, () => {
         const localData = localStorage.getItem("cart");
         return localData ? JSON.parse(localData) : initialState;

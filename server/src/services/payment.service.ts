@@ -105,8 +105,12 @@ class PaymentService {
                 disableCash: true,
                 disableWallet: false,
                 tipAmount: 0,
-                cancelUrl: `${env.cors.origin}/cart?status=canceled`,
-                successUrl: `${env.cors.origin}/cart?status=success`,
+                cancelUrl: `${
+                    env.cors.origin.split(",")[0]
+                }/cart?status=canceled`,
+                successUrl: `${
+                    env.cors.origin.split(",")[0]
+                }/cart?status=success`,
             };
 
             console.log("Creating order with payload:", payload);
@@ -171,17 +175,23 @@ class PaymentService {
         }
     }
 
-    async getOrderDetails(orderId: string): Promise<PaymentResult> {
+    async getOrderDetails(orderId: string) {
+        if (!this.isBearerValid()) {
+            await this.setBearerToken();
+        }
+
         console.log("=== Getting order details ===");
         console.log("Order ID:", orderId);
 
         try {
-            const url = `${this.config.baseUrl}/checkout/v2/orders/${orderId}`;
+            const url = `https://demo-api.vivapayments.com/checkout/v2/transactions/${orderId}`;
 
             const response = await fetch(url, {
                 method: "GET",
                 headers: this.getHeaders(),
             });
+
+            console.log("RAW RESPONSE", response);
 
             const responseText = await response.text();
             console.log("Raw order details response:", responseText);
@@ -202,7 +212,8 @@ class PaymentService {
             }
 
             const orderData = JSON.parse(responseText);
-            return this.formatOrderResponse(orderData);
+            return orderData;
+            // return this.formatOrderResponse(orderData);
         } catch (error) {
             console.error("Error getting order details:", error);
             return {
@@ -261,6 +272,7 @@ class PaymentService {
             amount: orderData.amount / 100,
             customerEmail: orderData.customer?.email,
             paymentMethod: orderData.paymentMethod,
+            statusId: orderData["statusId"],
         };
     }
 

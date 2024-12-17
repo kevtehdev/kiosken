@@ -31,11 +31,14 @@ import TabPage from "./pages/TabPage";
 import Cart from "./pages/Cart";
 import Campaign from "./pages/Campaign";
 import Config from "./pages/Config";
+import ConfirmationPage from "./pages/Confirmation";
 
 setupIonicReact();
 
 const TabsContainer: React.FC = () => {
-    const { state: { buttonMaps } } = useApi();
+    const {
+        state: { buttonMaps },
+    } = useApi();
 
     return (
         <IonTabs>
@@ -46,6 +49,11 @@ const TabsContainer: React.FC = () => {
                 <Route exact path="/cart" component={Cart} />
                 <Route exact path="/campaigns" component={Campaign} />
                 <Route exact path="/config" component={Config} />
+                <Route
+                    exact
+                    path="/confirmation"
+                    component={ConfirmationPage}
+                />
             </IonRouterOutlet>
             <TabBar buttonMaps={buttonMaps} />
         </IonTabs>
@@ -60,7 +68,10 @@ const App: React.FC = () => {
                     <CustomerProvider>
                         <IonReactRouter>
                             <IonRouterOutlet>
-                                <Route path="/" render={() => <TabsContainer />} />
+                                <Route
+                                    path="/"
+                                    render={() => <TabsContainer />}
+                                />
                             </IonRouterOutlet>
                         </IonReactRouter>
                     </CustomerProvider>
