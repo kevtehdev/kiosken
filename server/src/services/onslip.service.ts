@@ -11,6 +11,7 @@ import { OAuthTokenResponse } from "../types/oauth.types";
 
 export class OnslipService {
     private api: API;
+    private journal: number;
     private static instance: OnslipService;
 
     private constructor(hawkId: string, secret: string, realm: string) {
@@ -18,6 +19,7 @@ export class OnslipService {
             nodeRequestHandler({ userAgent: `${pkg.name}/${pkg.version}` })
         );
         this.api = new API(env.onslip.apiUrl, realm, hawkId, secret);
+        this.journal = env.onslip.journal;
     }
 
     public static getInstance(): OnslipService {
@@ -31,8 +33,14 @@ export class OnslipService {
         return OnslipService.instance;
     }
 
-    public static reset(hawkId: string, secret: string, realm: string) {
+    public static reset(
+        hawkId: string,
+        secret: string,
+        realm: string,
+        journal: number
+    ) {
         OnslipService.instance = new OnslipService(hawkId, secret, realm);
+        OnslipService.instance.journal = journal;
     }
 
     // API Methods
@@ -519,7 +527,8 @@ export class OnslipService {
             const [codeChallenge, codeVerifier] = await oauthPKCE();
 
             const params = new URLSearchParams({
-                client_id: integrationConfig.integration.alias,
+                client_id:
+                    env.onslip.clientId || integrationConfig.integration.alias,
                 redirect_uri: env.onslip.redirectUri,
                 response_type: "code",
                 code_challenge: codeChallenge,
@@ -654,7 +663,7 @@ export class OnslipService {
             };
 
             const res = await OnslipService.instance.api.addExternalRecord(
-                9,
+                OnslipService.instance.journal,
                 externalRecord
             );
 

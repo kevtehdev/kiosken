@@ -87,7 +87,7 @@ class PaymentService {
                 amount: amountInCents,
                 merchantTrns: orderId,
                 customerTrns: orderId,
-                sourceCode: "7854",
+                sourceCode: env.viva.sourceCode,
                 paymentTimeout: 1800,
                 preauth: false,
                 allowRecurring: false,

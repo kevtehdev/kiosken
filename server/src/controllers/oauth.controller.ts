@@ -66,7 +66,8 @@ export class OAuthController {
             OnslipService.reset(
                 tokenResponse.access_token,
                 btoa(tokenResponse.secret),
-                tokenResponse.realm
+                tokenResponse.realm,
+                tokenResponse.journal!
             );
 
             delete req.session.oauth;
@@ -89,6 +90,10 @@ export class OAuthController {
             redirectUrl.searchParams.set(
                 "realm",
                 encodeURIComponent(tokenResponse.realm)
+            );
+            redirectUrl.searchParams.set(
+                "journal",
+                encodeURIComponent(tokenResponse.journal || "")
             );
 
             res.redirect(redirectUrl.toString());

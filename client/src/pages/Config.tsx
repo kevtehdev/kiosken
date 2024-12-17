@@ -7,81 +7,97 @@ import {
     IonSpinner,
     useIonToast,
 } from "@ionic/react";
-import { settingsOutline, checkmarkCircleOutline, alertCircleOutline } from "ionicons/icons";
+import {
+    settingsOutline,
+    checkmarkCircleOutline,
+    alertCircleOutline,
+} from "ionicons/icons";
 import { useLocation } from "react-router-dom";
 import { Header } from "../components/layout/Header";
 import { useApi } from "../contexts/apiContext";
-import CredentialsDisplay, { OnslipCredentials } from "../components/config/CredentialsDisplay";
+import CredentialsDisplay, {
+    OnslipCredentials,
+} from "../components/config/CredentialsDisplay";
 import "../styles/pages/Config.css";
 
 const Config: React.FC = () => {
-    const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-    const [credentials, setCredentials] = useState<OnslipCredentials | null>(null);
+    const [status, setStatus] = useState<
+        "idle" | "loading" | "success" | "error"
+    >("idle");
+    const [credentials, setCredentials] = useState<OnslipCredentials | null>(
+        null
+    );
     const location = useLocation();
     const [presentToast] = useIonToast();
     const api = useApi();
 
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
-        const success = searchParams.get('success');
-        const error = searchParams.get('error');
-        const errorMessage = searchParams.get('message');
-        
-        const hawkId = searchParams.get('hawkId');
-        const key = searchParams.get('key');
-        const realm = searchParams.get('realm');
+        const success = searchParams.get("success");
+        const error = searchParams.get("error");
+        const errorMessage = searchParams.get("message");
 
-        if (success === 'true' && hawkId && key && realm) {
-            setStatus('success');
+        const hawkId = searchParams.get("hawkId");
+        const key = searchParams.get("key");
+        const realm = searchParams.get("realm");
+        const journal = searchParams.get("journal");
+
+        if (success === "true" && hawkId && key && realm && journal) {
+            setStatus("success");
             setCredentials({
                 hawkId: decodeURIComponent(hawkId),
                 key: decodeURIComponent(key),
-                realm: decodeURIComponent(realm)
+                realm: decodeURIComponent(realm),
+                journal: decodeURIComponent(journal),
             });
             presentToast({
-                message: 'Anslutningen till Onslip lyckades!',
+                message: "Anslutningen till Onslip lyckades!",
                 duration: 3000,
-                position: 'bottom',
-                color: 'success',
+                position: "bottom",
+                color: "success",
             });
-        } else if (error === 'true') {
-            setStatus('error');
+        } else if (error === "true") {
+            setStatus("error");
             presentToast({
-                message: errorMessage || 'Något gick fel vid anslutning till Onslip',
+                message:
+                    errorMessage || "Något gick fel vid anslutning till Onslip",
                 duration: 3000,
-                position: 'bottom',
-                color: 'danger',
+                position: "bottom",
+                color: "danger",
             });
         }
     }, [location, presentToast]);
 
     const handleOnslipConnect = async () => {
         try {
-            setStatus('loading');
-            const response = await fetch('http://localhost:3000/api/oauth/authorize', {
-                method: 'GET',
-                credentials: 'include',
-            });
+            setStatus("loading");
+            const response = await fetch(
+                "http://localhost:3000/api/oauth/authorize",
+                {
+                    method: "GET",
+                    credentials: "include",
+                }
+            );
 
             if (!response.ok) {
-                throw new Error('Kunde inte starta OAuth-flödet');
+                throw new Error("Kunde inte starta OAuth-flödet");
             }
 
             const data = await response.json();
             window.location.href = data.authorizationUrl;
         } catch (error) {
-            setStatus('error');
+            setStatus("error");
             presentToast({
-                message: 'Ett fel uppstod vid anslutning till Onslip',
+                message: "Ett fel uppstod vid anslutning till Onslip",
                 duration: 3000,
-                position: 'bottom',
-                color: 'danger',
+                position: "bottom",
+                color: "danger",
             });
         }
     };
 
     const renderContent = () => {
-        if (status === 'success' && credentials) {
+        if (status === "success" && credentials) {
             return (
                 <div className="config-card">
                     <div className="config-alert success">
@@ -93,13 +109,13 @@ const Config: React.FC = () => {
             );
         }
 
-        if (status === 'error') {
+        if (status === "error") {
             return (
                 <div className="config-card">
                     <h3>Onslip Integration</h3>
                     <p className="config-description">
-                        Anslut din butik till Onslip för att synkronisera produkter, 
-                        ordrar och betalningar.
+                        Anslut din butik till Onslip för att synkronisera
+                        produkter, ordrar och betalningar.
                     </p>
                     <div className="config-alert error">
                         <IonIcon icon={alertCircleOutline} />
@@ -120,22 +136,22 @@ const Config: React.FC = () => {
             <div className="config-card">
                 <h3>Onslip Integration</h3>
                 <p className="config-description">
-                    Anslut din butik till Onslip för att synkronisera produkter, 
+                    Anslut din butik till Onslip för att synkronisera produkter,
                     ordrar och betalningar.
                 </p>
                 <IonButton
                     expand="block"
                     onClick={handleOnslipConnect}
-                    disabled={status === 'loading'}
+                    disabled={status === "loading"}
                     className="config-button"
                 >
-                    {status === 'loading' ? (
+                    {status === "loading" ? (
                         <>
                             <IonSpinner name="crescent" />
                             <span>Ansluter...</span>
                         </>
                     ) : (
-                        'Anslut till Onslip'
+                        "Anslut till Onslip"
                     )}
                 </IonButton>
             </div>
