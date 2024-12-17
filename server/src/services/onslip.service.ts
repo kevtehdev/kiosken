@@ -55,6 +55,9 @@ export class OnslipService {
     async getCustomer(id: number) {
         return await OnslipService.instance.api.getCustomer(id);
     }
+    async getProductGroup(id: number) {
+        return await OnslipService.instance.api.getProductGroup(id);
+    }
 
     async listResources() {
         return await OnslipService.instance.api.listResources();

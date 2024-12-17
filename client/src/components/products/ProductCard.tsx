@@ -126,8 +126,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 price: product.price,
                 type: "goods",
                 "product-group": product["product-group"],
-                "vat-rate": 6, //temp
-                "vat-amount": 5.66, //temp
             },
         });
 

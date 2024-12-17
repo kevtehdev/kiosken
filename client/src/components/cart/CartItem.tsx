@@ -5,9 +5,10 @@ import { CartItem } from "../../types";
 import { useEffect, useState } from "react";
 import { api } from "../../services/api";
 import "../../styles/components/CartItem.css";
+import { API } from "@onslip/onslip-360-web-api";
 
 interface CartItemProps {
-    item: CartItem;
+    item: API.Item;
 }
 
 export default function CartItemComponent({ item }: CartItemProps) {
@@ -19,14 +20,14 @@ export default function CartItemComponent({ item }: CartItemProps) {
             try {
                 const response = await api.calculateDiscount({
                     originalPrice: (item.price || 0) * item.quantity,
-                    campaign: { productId: item.product }
+                    campaign: { productId: item.product },
                 });
                 setDiscountedPrice(response.discountedPrice);
             } catch (error) {
-                console.error('Fel vid hämtning av rabatterat pris:', error);
+                console.error("Fel vid hämtning av rabatterat pris:", error);
             }
         }
-        
+
         if (item.price) {
             fetchDiscountedPrice();
         }
@@ -36,7 +37,7 @@ export default function CartItemComponent({ item }: CartItemProps) {
         dispatch({
             type: "UPDATE_QUANTITY",
             payload: {
-                product: item.product,
+                product: item.product!,
                 quantity: item.quantity + 1,
             },
         });
@@ -47,17 +48,18 @@ export default function CartItemComponent({ item }: CartItemProps) {
             dispatch({
                 type: "UPDATE_QUANTITY",
                 payload: {
-                    product: item.product,
+                    product: item.product!,
                     quantity: item.quantity - 1,
                 },
             });
         } else {
-            dispatch({ type: "REMOVE_ITEM", payload: item.product });
+            dispatch({ type: "REMOVE_ITEM", payload: item.product! });
         }
     };
 
     const totalPrice = (item.price || 0) * item.quantity;
-    const discount = discountedPrice !== null ? totalPrice - discountedPrice : 0;
+    const discount =
+        discountedPrice !== null ? totalPrice - discountedPrice : 0;
 
     return (
         <IonItem className="cart-item">
@@ -105,7 +107,7 @@ export default function CartItemComponent({ item }: CartItemProps) {
                         onClick={() =>
                             dispatch({
                                 type: "REMOVE_ITEM",
-                                payload: item.product,
+                                payload: item.product!,
                             })
                         }
                     >
