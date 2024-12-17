@@ -16,11 +16,13 @@ interface Environment {
         redirectUri: string;
         authEndpoint: string;
         tokenEndpoint: string;
+        journal: number;
     };
     viva: {
         apiKey: string;
         merchantId: string;
         apiUrl: string;
+        sourceCode: string;
     };
     cors: {
         origin: string;
@@ -48,11 +50,13 @@ export const env: Environment = {
         tokenEndpoint:
             process.env.ONSLIP_TOKEN_ENDPOINT ||
             "https://test.onslip360.com/v1/oauth-token.json",
+        journal: Number(process.env.ONSLIP_JOURNAL),
     },
     viva: {
         merchantId: process.env.VIVA_MERCHANT_ID || "",
         apiKey: process.env.VIVA_API_KEY || "",
         apiUrl: process.env.VIVA_API_URL || "https://api.vivapayments.com",
+        sourceCode: process.env.VIVA_SOURCE_CODE || "Default",
     },
     cors: {
         origin:

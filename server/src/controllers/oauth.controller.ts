@@ -66,7 +66,8 @@ export class OAuthController {
             OnslipService.reset(
                 tokenResponse.access_token,
                 btoa(tokenResponse.secret),
-                tokenResponse.realm
+                tokenResponse.realm,
+                tokenResponse.journal!
             );
 
             delete req.session.oauth;
