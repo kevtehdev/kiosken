@@ -1,4 +1,5 @@
 import { API } from "@onslip/onslip-360-web-api";
+import { Transaction } from "../types/viva";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
@@ -207,7 +208,7 @@ export const api = {
         return res;
     },
 
-    verifyPayment: async (transactionId: string, orderId: string) => {
+    verifyPayment: async (transactionId: string) => {
         const response = await fetch(
             `${API_URL}/payments/status/${transactionId}`,
             {
@@ -215,7 +216,7 @@ export const api = {
                 headers: { "Content-Type": "application/json" },
             }
         );
-        const res = await response.json();
+        const res = (await response.json()) as Transaction;
         console.log(response);
         console.log(res);
 

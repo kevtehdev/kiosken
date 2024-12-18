@@ -2,6 +2,7 @@ import { PaymentResult, PaymentStatus } from "../types/payment.types";
 import { logger } from "../utils/logger";
 import { ApplicationError } from "../middleware/error.middleware";
 import { env } from "../config/environment";
+import { PaymentOrder, Transaction } from "../types/viva.types";
 
 class PaymentService {
     private config = {
@@ -83,7 +84,7 @@ class PaymentService {
             // Använd smart checkout endpoint
             const apiUrl = `${this.config.baseUrl}/checkout/v2/orders`;
 
-            const payload = {
+            const payload: PaymentOrder = {
                 amount: amountInCents,
                 merchantTrns: orderId,
                 customerTrns: orderId,
@@ -92,7 +93,7 @@ class PaymentService {
                 preauth: false,
                 allowRecurring: false,
                 maxInstallments: 0,
-                currencyCode: 752, // SEK
+                currencyCode: "752", // SEK
                 customer: {
                     email: "",
                     fullName: "",
@@ -105,12 +106,6 @@ class PaymentService {
                 disableCash: true,
                 disableWallet: false,
                 tipAmount: 0,
-                cancelUrl: `${
-                    env.cors.origin.split(",")[0]
-                }/cart?status=canceled`,
-                successUrl: `${
-                    env.cors.origin.split(",")[0]
-                }/cart?status=success`,
             };
 
             console.log("Creating order with payload:", payload);
@@ -175,16 +170,16 @@ class PaymentService {
         }
     }
 
-    async getOrderDetails(orderId: string) {
+    async getTransactionDetails(transactionId: string) {
         if (!this.isBearerValid()) {
             await this.setBearerToken();
         }
 
-        console.log("=== Getting order details ===");
-        console.log("Order ID:", orderId);
+        console.log("=== Getting transaction details ===");
+        console.log("Transaction ID:", transactionId);
 
         try {
-            const url = `https://demo-api.vivapayments.com/checkout/v2/transactions/${orderId}`;
+            const url = `https://demo-api.vivapayments.com/checkout/v2/transactions/${transactionId}`;
 
             const response = await fetch(url, {
                 method: "GET",
@@ -194,7 +189,7 @@ class PaymentService {
             console.log("RAW RESPONSE", response);
 
             const responseText = await response.text();
-            console.log("Raw order details response:", responseText);
+            console.log("Raw transaction details response:", responseText);
 
             if (!response.ok) {
                 let errorData;
@@ -211,9 +206,8 @@ class PaymentService {
                 };
             }
 
-            const orderData = JSON.parse(responseText);
-            return orderData;
-            // return this.formatOrderResponse(orderData);
+            const transaction = JSON.parse(responseText) as Transaction;
+            return transaction;
         } catch (error) {
             console.error("Error getting order details:", error);
             return {

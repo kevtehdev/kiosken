@@ -15,7 +15,7 @@ export default function ConfirmationPage() {
 
     useEffect(() => {
         async function verify() {
-            const res = await api.verifyPayment(transactionID!, orderID!);
+            const res = await api.verifyPayment(transactionID!);
             console.log("RESULT", res);
             setStatus(res.statusId);
         }
