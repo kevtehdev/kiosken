@@ -107,10 +107,11 @@ export class PaymentController {
     };
 
     checkPaymentStatus = async (req: Request, res: Response): Promise<void> => {
+        console.log("PARAMS", req.params);
         try {
-            const { orderId } = req.params;
+            const { transactionId } = req.params;
 
-            if (!orderId) {
+            if (!transactionId) {
                 throw new ApplicationError(
                     "Order ID missing",
                     400,
@@ -118,23 +119,30 @@ export class PaymentController {
                 );
             }
 
-            const order = await this.paymentService.getOrderDetails(orderId);
-            console.log(order);
-            logger.info("Payment status:", order);
+            const transaction = await this.paymentService.getTransactionDetails(
+                transactionId
+            );
+            console.log(transaction);
+            logger.info("Payment status:", transaction);
 
-            console.log(order.merchantTrns);
+            if ("status" in transaction) {
+                console.log(transaction);
+                return;
+            }
 
-            const order1 = await this.onslipService.getOrderByRef(
-                order.merchantTrns
+            console.log(transaction.merchantTrns);
+
+            const order = await this.onslipService.getOrderByRef(
+                transaction.merchantTrns
             );
 
-            console.log("ORDER", order1);
+            console.log("ORDER", order);
 
-            if (order.statusId === "F") {
+            if (transaction.statusId === "F") {
                 try {
                     const res = await this.onslipService.addJournalRecord(
-                        order1,
-                        order1.id!
+                        order,
+                        order.id!
                     );
                     console.log("Record", res);
                 } catch (error) {
@@ -142,7 +150,7 @@ export class PaymentController {
                 }
             }
 
-            res.json(order);
+            res.json(transaction);
         } catch (error) {
             logger.error("Status check error:", error);
             res.status(500).json({
@@ -164,11 +172,15 @@ export class PaymentController {
             res.status(200).json({ received: true });
 
             if (eventType === "payment.completed" && orderId) {
-                const status = await this.paymentService.getOrderDetails(
+                const res = await this.paymentService.getTransactionDetails(
                     orderId
                 );
 
-                if (status.status === "completed" && req.body.deliveryDetails) {
+                if (
+                    "status" in res &&
+                    res.status === "completed" &&
+                    req.body.deliveryDetails
+                ) {
                     await this.deliveryService.sendPaymentConfirmation(
                         req.body.deliveryDetails,
                         orderId
