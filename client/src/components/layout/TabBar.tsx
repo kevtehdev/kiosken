@@ -14,8 +14,8 @@ import {
     fastFoodOutline,
     cartOutline
 } from 'ionicons/icons';
-import { ButtonMap } from '../../contexts/apiContext';
-import '../../styles/components/TabBar.css';
+import { API } from '@onslip/onslip-360-web-api';
+import '../../styles/components/layout/TabBar.css';
 
 export const getIconForTab = (name: string) => {
     const normalizedName = name.toLowerCase();
@@ -37,7 +37,7 @@ export const getIconForTab = (name: string) => {
 };
 
 interface TabBarProps {
-    buttonMaps: ButtonMap[];
+    buttonMaps: API.ButtonMap[];
 }
 
 export const TabBar: React.FC<TabBarProps> = ({ buttonMaps }) => {

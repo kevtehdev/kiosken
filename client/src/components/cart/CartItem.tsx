@@ -1,25 +1,30 @@
+// components/cart/CartItem.tsx
+import React, { useEffect, useState } from "react";
 import { IonButton, IonItem, IonIcon, IonLabel, IonNote } from "@ionic/react";
 import { add, remove, trash } from "ionicons/icons";
 import { useCart } from "../../contexts/cartContext";
-import { CartItem } from "../../types";
-import { useEffect, useState } from "react";
 import { api } from "../../services/api";
-import "../../styles/components/CartItem.css";
 import { API } from "@onslip/onslip-360-web-api";
+import "../../styles/components/cart/CartItem.css";
 
 interface CartItemProps {
-    item: API.Item;
+    item: API.Item & {
+        'product-name': string;
+        product: number;
+    };
 }
 
-export default function CartItemComponent({ item }: CartItemProps) {
+export const CartItem: React.FC<CartItemProps> = ({ item }) => {
     const { dispatch } = useCart();
     const [discountedPrice, setDiscountedPrice] = useState<number | null>(null);
 
     useEffect(() => {
         async function fetchDiscountedPrice() {
+            if (!item.price || !item.product) return;
+            
             try {
                 const response = await api.calculateDiscount({
-                    originalPrice: (item.price || 0) * item.quantity,
+                    originalPrice: item.price * item.quantity,
                     campaign: { productId: item.product },
                 });
                 setDiscountedPrice(response.discountedPrice);
@@ -28,38 +33,44 @@ export default function CartItemComponent({ item }: CartItemProps) {
             }
         }
 
-        if (item.price) {
-            fetchDiscountedPrice();
-        }
-    }, [item]);
+        fetchDiscountedPrice();
+    }, [item.price, item.product, item.quantity]);
 
     const handleIncrement = () => {
+        if (!item.product) return;
+        
         dispatch({
             type: "UPDATE_QUANTITY",
             payload: {
-                product: item.product!,
+                product: item.product,
                 quantity: item.quantity + 1,
             },
         });
     };
 
     const handleDecrement = () => {
+        if (!item.product) return;
+
         if (item.quantity > 1) {
             dispatch({
                 type: "UPDATE_QUANTITY",
                 payload: {
-                    product: item.product!,
+                    product: item.product,
                     quantity: item.quantity - 1,
                 },
             });
         } else {
-            dispatch({ type: "REMOVE_ITEM", payload: item.product! });
+            dispatch({ type: "REMOVE_ITEM", payload: item.product });
         }
     };
 
+    const handleRemove = () => {
+        if (!item.product) return;
+        dispatch({ type: "REMOVE_ITEM", payload: item.product });
+    };
+
     const totalPrice = (item.price || 0) * item.quantity;
-    const discount =
-        discountedPrice !== null ? totalPrice - discountedPrice : 0;
+    const discount = discountedPrice !== null ? totalPrice - discountedPrice : 0;
 
     return (
         <IonItem className="cart-item">
@@ -104,12 +115,7 @@ export default function CartItemComponent({ item }: CartItemProps) {
                         className="delete-button"
                         color="danger"
                         size="small"
-                        onClick={() =>
-                            dispatch({
-                                type: "REMOVE_ITEM",
-                                payload: item.product!,
-                            })
-                        }
+                        onClick={handleRemove}
                     >
                         <IonIcon icon={trash} />
                     </IonButton>
@@ -117,4 +123,4 @@ export default function CartItemComponent({ item }: CartItemProps) {
             </div>
         </IonItem>
     );
-}
+};

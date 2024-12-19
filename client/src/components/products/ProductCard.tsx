@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     IonCard,
     IonCardHeader,
@@ -18,13 +18,12 @@ import {
     flashOutline,
     checkmarkCircleOutline,
 } from "ionicons/icons";
-
 import { motion, AnimatePresence } from "framer-motion";
-import "../../styles/components/ProductCard.css";
 import { useApi } from "../../contexts/apiContext";
 import { useCart } from "../../contexts/cartContext";
 import { API } from "@onslip/onslip-360-web-api";
 import { api } from "../../services/api";
+import "../../styles/components/products/ProductCard.css";
 
 interface ProductCardProps {
     productId: number;
@@ -33,12 +32,12 @@ interface ProductCardProps {
 
 export const ProductCard: React.FC<ProductCardProps> = ({
     productId,
-    index,
+    index = 0,
 }) => {
     const {
         state: { products, loading },
     } = useApi();
-    const product = productId ? products[productId] : null;
+    const product = products[productId];
     const { dispatch } = useCart();
     const [campaignDisplay, setCampaignDisplay] = useState<number | string>();
     const [campaign, setCampaign] = useState<API.Campaign>();
@@ -48,56 +47,77 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     const [stockQuantity, setStockQuantity] = useState<number>(0);
 
     useEffect(() => {
+        let isMounted = true;
+
         async function fetchCampaigns() {
             if (!product?.price) return;
 
-            const stock = await api.listStockBalance(1, `id:${product.id}`);
+            try {
+                const stock = await api.listStockBalance(1, `id:${product.id}`);
+                if (!isMounted) return;
+                
+                setStockQuantity(stock[0]?.quantity || 0);
 
-            setStockQuantity(stock[0].quantity || 0);
+                const bestCampaign = await api.findBestCampaign(product.id!);
+                if (!isMounted || !bestCampaign) return;
 
-            const bestCampaign = await api.findBestCampaign(product.id!);
-            if (!bestCampaign) return;
-
-            setCampaign(bestCampaign);
-            setCampaignDisplay(
-                bestCampaign["discount-rate"] ||
+                setCampaign(bestCampaign);
+                setCampaignDisplay(
+                    bestCampaign["discount-rate"] ||
                     bestCampaign.amount ||
                     bestCampaign.name
-            );
-            switch (bestCampaign.type) {
-                case "fixed-amount":
-                    setReducedPrice(product.price - bestCampaign.amount!);
-                    break;
-                case "fixed-price":
-                    if (
-                        bestCampaign.rules[0].quantity > 1 ||
-                        bestCampaign.rules.length > 1
-                    ) {
-                        setCampaignDisplay(bestCampaign.name);
+                );
+
+                switch (bestCampaign.type) {
+                    case "fixed-amount":
+                        setReducedPrice(product.price - bestCampaign.amount!);
                         break;
-                    }
-                    setReducedPrice(bestCampaign.amount);
-                    break;
-                case "percentage":
-                    if (
-                        bestCampaign.rules[0].quantity > 1 ||
-                        bestCampaign.rules.length > 1
-                    ) {
-                        setCampaignDisplay(bestCampaign.name);
+                    case "fixed-price":
+                        if (bestCampaign.rules[0].quantity > 1 || bestCampaign.rules.length > 1) {
+                            setCampaignDisplay(bestCampaign.name);
+                            break;
+                        }
+                        setReducedPrice(bestCampaign.amount);
                         break;
-                    }
-                    setReducedPrice(
-                        (1 - bestCampaign["discount-rate"]! / 100) *
-                            product?.price!
-                    );
-                    break;
-                default:
-                    break;
+                    case "percentage":
+                        if (bestCampaign.rules[0].quantity > 1 || bestCampaign.rules.length > 1) {
+                            setCampaignDisplay(bestCampaign.name);
+                            break;
+                        }
+                        setReducedPrice(
+                            (1 - bestCampaign["discount-rate"]! / 100) * product.price
+                        );
+                        break;
+                }
+            } catch (error) {
+                console.error('Error fetching campaign data:', error);
             }
         }
 
         fetchCampaigns();
+        return () => {
+            isMounted = false;
+        };
     }, [productId, product]);
+
+    const handleAddToCart = useCallback(() => {
+        if (isAdded || !product || !product.id) return;
+
+        dispatch({
+            type: "ADD_ITEM",
+            payload: {
+                "product-name": product.name,
+                product: product.id,
+                quantity: 1,
+                price: product.price,
+                type: "goods",
+                "product-group": product["product-group"],
+            },
+        });
+
+        setIsAdded(true);
+        setTimeout(() => setIsAdded(false), 1500);
+    }, [dispatch, product, isAdded]);
 
     if (loading || !product) {
         return (
@@ -116,28 +136,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         );
     }
 
-    const handleAddToCart = () => {
-        dispatch({
-            type: "ADD_ITEM",
-            payload: {
-                "product-name": product.name,
-                product: product.id!,
-                quantity: 1,
-                price: product.price,
-                type: "goods",
-                "product-group": product["product-group"],
-            },
-        });
-
-        setIsAdded(true);
-        setTimeout(() => setIsAdded(false), 1500);
-    };
-
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index! * 0.1 }}
+            transition={{ duration: 0.3, delay: index * 0.1 }}
         >
             <IonCard
                 className="product-card"
@@ -223,23 +226,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                             <IonButton
                                 className="add-to-cart-button"
                                 expand="block"
-                                disabled={
-                                    loading ||
-                                    !product.price ||
-                                    isAdded ||
-                                    stockQuantity === 0
-                                }
+                                disabled={loading || !product.price || isAdded || stockQuantity === 0}
                                 onClick={handleAddToCart}
                                 color={isAdded ? "success" : undefined}
                             >
                                 <IonIcon
-                                    icon={
-                                        isAdded
-                                            ? checkmarkCircleOutline
-                                            : product.price
-                                            ? cartOutline
-                                            : flashOutline
-                                    }
+                                    icon={isAdded ? checkmarkCircleOutline : (product.price ? cartOutline : flashOutline)}
                                     slot="start"
                                 />
                                 {loading
@@ -258,5 +250,3 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </motion.div>
     );
 };
-
-export default ProductCard;

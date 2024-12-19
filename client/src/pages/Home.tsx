@@ -1,151 +1,47 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
     IonContent,
     IonPage,
-    IonIcon,
-    IonSpinner,
     IonRefresher,
     IonRefresherContent,
-    IonText,
-    IonBadge,
     IonToggle,
 } from "@ionic/react";
-import { refreshOutline, homeOutline } from "ionicons/icons";
-import { motion, AnimatePresence } from "framer-motion";
+import { refreshOutline, homeOutline, alertCircleOutline } from "ionicons/icons";
+import { AnimatePresence } from "framer-motion";
 import { useApi } from "../contexts/apiContext";
-import { ProductCard } from "../components/products/ProductCard";
 import { Header } from "../components/layout/Header";
-import { getIconForTab } from "../components/layout/TabBar";
+import { LoadingState } from "../components/common/LoadingState";
+import { EmptyState } from "../components/common/EmptyState";
+import { CategorySection } from "../components/products/CategorySection";
+import { useStock } from "../hooks/useStock";
+import { MESSAGES } from "../constants/messages";
 import "../styles/pages/Home.css";
-import { API } from "@onslip/onslip-360-web-api";
-import { api } from "../services/api";
-
-interface Category {
-    products: number[];
-    id?: number | undefined;
-    name: string;
-    type:
-        | "menu"
-        | "tablet-groups"
-        | "tablet-buttons"
-        | "phone-buttons"
-        | "menu-section";
-    buttons: API.ButtonMapItem[];
-}
-
-interface CategorySectionProps {
-    category: Category;
-    products: number[];
-    index: number;
-}
-
-const CategorySection: React.FC<CategorySectionProps> = ({
-    category,
-    products,
-    index,
-}) => {
-    const categoryIcon = getIconForTab(category.name);
-
-    return (
-        <motion.section
-            className="category-section"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
-        >
-            <div className="category-header">
-                <div className="category-header-content">
-                    <IonIcon
-                        icon={categoryIcon}
-                        className="category-header-icon"
-                    />
-                    <div className="category-header-text">
-                        <div className="category-header-title">
-                            <h3>{category.name}</h3>
-                            <IonBadge color="primary">
-                                {products.length} produkter
-                            </IonBadge>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="category-products">
-                <div className="product-grid">
-                    {products.map((productId, productIndex) => (
-                        <ProductCard
-                            key={productId}
-                            productId={productId}
-                            index={productIndex}
-                        />
-                    ))}
-                </div>
-            </div>
-        </motion.section>
-    );
-};
 
 const Home: React.FC = () => {
     const {
-        state: { buttonMaps, loading },
+        state: { buttonMaps, loading: apiLoading },
     } = useApi();
     const [filterOutOfStock, setFilterOutOfStock] = useState(true);
-    const [stock, setStock] = useState<API.StockBalance[]>();
-    const [categories, setCategories] = useState<
-        {
-            products: number[];
-            id?: number | undefined;
-            name: string;
-            type:
-                | "menu"
-                | "tablet-groups"
-                | "tablet-buttons"
-                | "phone-buttons"
-                | "menu-section";
-            buttons: API.ButtonMapItem[];
-        }[]
-    >([]);
+    const { stock, error, loading: stockLoading } = useStock();
 
-    useEffect(() => {
-        async function fetch() {
-            try {
-                const stockData = await api.listStockBalance(1);
-                setStock(stockData);
-            } catch (error) {
-                console.log(error);
-            }
-        }
-        fetch();
-    }, []);
-
-    useEffect(() => {
-        if (stock) {
-            const filteredCategories = buttonMaps
-                .filter(
-                    (map) =>
-                        map.type === "tablet-buttons" &&
-                        map.buttons &&
-                        map.buttons.length > 0
-                )
-                .map((map) => ({
-                    ...map,
-                    products: map.buttons
-                        .filter((button) => button.product)
-                        .map((button) => button.product!),
-                }))
-                .map((category) => ({
-                    ...category,
-                    products: filterOutOfStock
-                        ? category.products.filter((product) =>
-                              stock.some(
-                                  (item) =>
-                                      item.id === product && item.quantity! > 0
-                              )
-                          )
-                        : category.products,
-                }));
-            setCategories(filteredCategories);
-        }
+    const filteredCategories = useMemo(() => {
+        if (!stock) return [];
+        
+        return buttonMaps
+            .filter(map => map.type === "tablet-buttons" && map.buttons?.length > 0)
+            .map(map => ({
+                ...map,
+                products: map.buttons
+                    .filter(button => button.product)
+                    .map(button => button.product!)
+            }))
+            .map(category => ({
+                ...category,
+                products: filterOutOfStock
+                    ? category.products.filter(product => 
+                        stock.some(item => item.id === product && item.quantity! > 0))
+                    : category.products
+            }));
     }, [stock, filterOutOfStock, buttonMaps]);
 
     const handleRefresh = (event: CustomEvent) => {
@@ -155,22 +51,22 @@ const Home: React.FC = () => {
         }, 1500);
     };
 
-    if (loading) {
+    if (apiLoading || stockLoading) {
+        return <LoadingState message={MESSAGES.LOADING.PRODUCTS} />;
+    }
+
+    if (error) {
         return (
-            <IonPage>
-                <Header />
-                <IonContent>
-                    <div className="loading-state">
-                        <IonSpinner name="crescent" />
-                        <p>Laddar produkter...</p>
-                    </div>
-                </IonContent>
-            </IonPage>
+            <EmptyState
+                icon={alertCircleOutline}
+                title="Ett fel uppstod"
+                description={error}
+            />
         );
     }
 
     return (
-        <IonPage>
+        <IonPage className="home-page">
             <Header />
             <IonContent>
                 <IonRefresher
@@ -180,56 +76,39 @@ const Home: React.FC = () => {
                 >
                     <IonRefresherContent
                         pullingIcon={refreshOutline}
-                        pullingText="Dra för att uppdatera"
+                        pullingText={MESSAGES.ACTIONS.REFRESH}
                         refreshingSpinner="crescent"
-                        refreshingText="Uppdaterar..."
+                        refreshingText={MESSAGES.ACTIONS.UPDATING}
                     />
                 </IonRefresher>
                 <div className="container">
                     <AnimatePresence mode="sync">
-                        {categories.length === 0 ? (
-                            <motion.div
-                                className="empty-state-container"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                transition={{ duration: 0.3 }}
-                            >
-                                <IonIcon
-                                    icon={homeOutline}
-                                    className="empty-state-icon"
-                                />
-                                <IonText>
-                                    <h2>Inga produkter tillgängliga</h2>
-                                    <p>
-                                        Det finns inga produkter att visa just
-                                        nu.
-                                    </p>
-                                </IonText>
-                            </motion.div>
+                        {filteredCategories.length === 0 ? (
+                            <EmptyState
+                                icon={homeOutline}
+                                title={MESSAGES.EMPTY_STATES.PRODUCTS.TITLE}
+                                description={MESSAGES.EMPTY_STATES.PRODUCTS.DESCRIPTION}
+                            />
                         ) : (
                             <>
-                                <IonToggle
-                                    onClick={() =>
-                                        setFilterOutOfStock(!filterOutOfStock)
-                                    }
-                                    checked={filterOutOfStock}
-                                >
-                                    Göm Slut
-                                </IonToggle>
-                                {categories?.map((category, index) => {
-                                    if (category.products.length > 0) {
-                                        return (
-                                            <CategorySection
-                                                key={category.id}
-                                                category={category}
-                                                products={category.products}
-                                                index={index}
-                                            />
-                                        );
-                                    }
-                                    return null;
-                                })}
+                                <div className="toggle-container">
+                                    <IonToggle
+                                        onClick={() => setFilterOutOfStock(!filterOutOfStock)}
+                                        checked={filterOutOfStock}
+                                    >
+                                        {MESSAGES.ACTIONS.HIDE_OUT_OF_STOCK}
+                                    </IonToggle>
+                                </div>
+                                {filteredCategories.map((category, index) => (
+                                    category.products.length > 0 && (
+                                        <CategorySection
+                                            key={category.id}
+                                            category={category}
+                                            products={category.products}
+                                            index={index}
+                                        />
+                                    )
+                                ))}
                             </>
                         )}
                     </AnimatePresence>

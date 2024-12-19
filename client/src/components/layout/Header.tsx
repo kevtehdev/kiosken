@@ -7,7 +7,7 @@ import {
     useIonRouter,
 } from "@ionic/react";
 import CartIcon from "../cart/CartIcon";
-import '../../styles/components/Header.css';
+import '../../styles/components/layout/Header.css';
 
 interface HeaderProps {
     title?: string;

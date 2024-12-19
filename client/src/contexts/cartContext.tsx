@@ -5,7 +5,6 @@ import React, {
     ReactNode,
     useEffect,
 } from "react";
-import { CartItem } from "../types";
 import { API } from "@onslip/onslip-360-web-api";
 
 interface CartState {
@@ -15,10 +14,7 @@ interface CartState {
 type CartAction =
     | { type: "ADD_ITEM"; payload: API.Item }
     | { type: "REMOVE_ITEM"; payload: number }
-    | {
-          type: "UPDATE_QUANTITY";
-          payload: { product: number; quantity: number };
-      }
+    | { type: "UPDATE_QUANTITY"; payload: { product: number; quantity: number } }
     | { type: "CLEAR_CART" };
 
 const initialState: CartState = {
@@ -31,13 +27,20 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
             const existingItemIndex = state.items.findIndex(
                 (item) => item.product === action.payload.product
             );
+            
             if (existingItemIndex !== -1) {
-                const updatedItems = [...state.items];
-                updatedItems[existingItemIndex].quantity +=
-                    action.payload.quantity;
-                return { items: updatedItems };
+                return {
+                    items: state.items.map((item, index) => 
+                        index === existingItemIndex
+                            ? { ...item, quantity: item.quantity + 1 }
+                            : item
+                    )
+                };
             }
-            return { items: [...state.items, action.payload] };
+            
+            return { 
+                items: [...state.items, { ...action.payload, quantity: 1 }] 
+            };
         }
         case "REMOVE_ITEM":
             return {
@@ -46,13 +49,6 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
                 ),
             };
         case "UPDATE_QUANTITY":
-            if (action.payload.quantity <= 0) {
-                return {
-                    items: state.items.filter(
-                        (item) => item.product !== action.payload.product
-                    ),
-                };
-            }
             return {
                 items: state.items.map((item) =>
                     item.product === action.payload.product
@@ -76,8 +72,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
     children,
 }) => {
     const [state, dispatch] = useReducer(cartReducer, initialState, () => {
-        const localData = localStorage.getItem("cart");
-        return localData ? JSON.parse(localData) : initialState;
+        try {
+            const localData = localStorage.getItem("cart");
+            return localData ? JSON.parse(localData) : initialState;
+        } catch {
+            return initialState;
+        }
     });
 
     useEffect(() => {
