@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { IonSelect, IonSelectOption, IonSpinner } from "@ionic/react";
 import { useCustomer, Customer } from "../../contexts/userContext";
-import '../../styles/components/UserList.css';
+import '../../styles/components/cart/UserList.css';
 
 interface UserListProps {
     onCustomerSelect: (customer: Customer) => void;

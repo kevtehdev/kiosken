@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { IonIcon, IonButton, IonToast } from "@ionic/react";
 import { copyOutline, checkmarkOutline } from "ionicons/icons";
-import "../../styles/components/CredentialsDisplay.css";
+import "../../styles/components/config/CredentialsDisplay.css";
 
 export interface OnslipCredentials {
     hawkId: string;

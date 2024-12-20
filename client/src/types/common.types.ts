@@ -1,14 +1,4 @@
-import { API } from '@onslip/onslip-360-node-api';
-
-export type Product = API.Product;
-
-export interface CartItem {
-    product: number;
-    'product-name': string;
-    quantity: number;
-    price?: number;
-    type: 'goods';
-}
+import { API } from "@onslip/onslip-360-web-api";
 
 export interface Category {
     products: number[];
@@ -18,15 +8,10 @@ export interface Category {
     buttons: API.ButtonMapItem[];
 }
 
-export interface Campaign {
+export interface Product {
     id: number;
     name: string;
-    type: string;
-    'discount-rate'?: number;
-    amount?: number;
-    rules: Array<{
-        products: number[];
-    }>;
+    price?: number;
 }
 
 export interface DeliveryDetails {
@@ -43,11 +28,4 @@ export interface DeliveryDetails {
         price: number;
         totalPrice: number;
     }>;
-}
-
-export interface OnslipCredentials {
-    hawkId: string;
-    key: string;
-    realm: string;
-    journal: string;
 }

@@ -1,0 +1,49 @@
+.campaign-section {
+    margin-bottom: var(--spacing-xl);
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+}
+
+.campaign-products {
+    padding: var(--spacing-md);
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-md);
+}
+
+@media (max-width: 1024px) {
+    .product-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .campaign-banner-content,
+    .campaign-products {
+        padding: var(--spacing-sm);
+    }
+
+    .product-grid {
+        gap: var(--spacing-sm);
+    }
+
+    .campaign-banner-title h3 {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .product-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .campaign-banner-title h3 {
+        font-size: 1rem;
+    }
+}

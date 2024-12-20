@@ -10,7 +10,19 @@
     --gray-200: #e5e7eb;
     --gray-300: #d1d5db;
     --gray-400: #9ca3af;
-    --black-200 : #1a1a1a;
+    --black-200: #1a1a1a;
+
+    /* Skuggor */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.08);
+    --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.12);
+
+    /* Border Radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
 
     /* Typografi */
     --font-primary: "Space Grotesk", -apple-system, system-ui, sans-serif;
@@ -43,11 +55,11 @@
     /* Knappfärger */
     --button-background: var(--black);
     --button-text: var(--brand-green);
-    --button-hover: #1a1a1a;
+    --button-hover: var(--black-200);
 
     /* Layoutkonstanter */
     --nav-height: 56px;
-    --content-max-width: 1200px; /* Justerad för smalare innehåll */
+    --content-max-width: 1200px;
 
     /* Avståndsskala */
     --spacing-xs: 0.5rem;
@@ -55,6 +67,13 @@
     --spacing-md: 1.5rem;
     --spacing-lg: 2rem;
     --spacing-xl: 3rem;
+
+    /* Animationer */
+    --transition-fast: 0.2s;
+    --transition-normal: 0.3s;
+    --transition-slow: 0.4s;
+    --transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --transition-ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Globala stilar */
@@ -64,7 +83,7 @@ body {
     letter-spacing: -0.02em;
 }
 
-/* Tvinga Ionic-komponenter att använda vårt typsnitt */
+/* Ionic Component Overrides */
 ion-content,
 ion-item,
 ion-label,
@@ -80,12 +99,8 @@ ion-tab-button {
     font-family: var(--font-primary) !important;
 }
 
-/* Säkerställ att rubriker använder vårt typsnitt */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
+/* Typografi */
+h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-primary);
+    letter-spacing: -0.02em;
 }

@@ -1,3 +1,5 @@
+import { API } from "@onslip/onslip-360-web-api";
+
 export type PaymentStatus = 'processing' | 'completed' | 'failed' | 'pending';
 
 export interface PaymentResult {
@@ -5,9 +7,15 @@ export interface PaymentResult {
     message: string;
     transactionId?: string;
     orderCode?: string;
-    checkoutUrl?: string;  // Lagt till för Smart Checkout
-    amount?: number;       // Lagt till för Smart Checkout
-    customerEmail?: string;  // Lagt till för Smart Checkout
-    paymentMethod?: string;  // Lagt till för Smart Checkout
+    checkoutUrl?: string;
+    amount?: number;
+    customerEmail?: string;
+    paymentMethod?: string;
     error?: any;
+}
+
+export interface CartItemType extends Omit<API.Item, 'product'> {
+    'product-name': string;
+    product: number;
+    type: 'goods';
 }

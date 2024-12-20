@@ -1,7 +1,7 @@
 import { IonIcon, IonBadge, IonRouterLink } from "@ionic/react";
 import { cart } from "ionicons/icons";
 import { useCart } from "../../contexts/cartContext";
-import '../../styles/components/CartIcon.css';
+import '../../styles/components/cart/CartIcon.css';
 
 export default function CartIcon() {
     const { state } = useCart();
