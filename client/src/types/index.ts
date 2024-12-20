@@ -18,6 +18,12 @@ export interface Category {
     buttons: API.ButtonMapItem[];
 }
 
+export interface CategorySectionProps {
+    category: Category;
+    products: number[];
+    index: number;
+}
+
 export interface Campaign {
     id: number;
     name: string;
@@ -50,4 +56,9 @@ export interface OnslipCredentials {
     key: string;
     realm: string;
     journal: string;
+}
+
+export interface StockItem {
+    id: number;
+    quantity: number;
 }

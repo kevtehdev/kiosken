@@ -1,3 +1,4 @@
+/* Huvudcontainer och sektioner */
 .cart-container {
     max-width: var(--content-max-width);
     margin: 0 auto;
@@ -15,6 +16,7 @@
     overflow: hidden;
 }
 
+/* Sektionsrubriker */
 .cart-section-header {
     padding: var(--spacing-md);
     border-bottom: 1px solid var(--gray-200);
@@ -32,6 +34,7 @@
     padding: var(--spacing-md);
 }
 
+/* Varukorgslista */
 .cart-list {
     background: transparent;
     padding: 0;
@@ -48,6 +51,7 @@
     border: 1px solid var(--gray-200);
 }
 
+/* Total och rabatter */
 .cart-total {
     background: var(--gray-50);
     border-radius: 0;
@@ -62,6 +66,12 @@
     align-items: center;
 }
 
+.cart-total-container {
+    text-align: end;
+    display: flex;
+    flex-direction: column;
+}
+
 .cart-total-label {
     font-size: 1.1rem;
     font-weight: 600;
@@ -74,44 +84,13 @@
     color: var(--ion-color-primary);
 }
 
-.cart-total-container {
-    text-align: end;
-    display: flex;
-    flex-direction: column;
-}
-
 .cart-total-discount {
     color: red;
     font-size: 1.4rem;
     font-weight: 700;
 }
 
-.cart-actions {
-    position: sticky;
-    bottom: 0;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(8px);
-    padding: var(--spacing-md);
-    display: flex;
-    gap: var(--spacing-md);
-    margin: var(--spacing-xl) -var(--spacing-md) -var(--spacing-md);
-    border-top: 1px solid var(--gray-200);
-}
-
-.action-button {
-    --border-radius: 0 !important;
-    --box-shadow: none !important;
-    min-height: 52px;
-    font-weight: 600;
-    font-size: 1.05rem;
-}
-
-.action-button[color="danger"] {
-    --background: transparent !important;
-    --color: var(--ion-color-danger) !important;
-    border: 1px solid var(--ion-color-danger);
-}
-
+/* Leveranssteg */
 .delivery-steps {
     list-style: none;
     padding: 0;
@@ -139,6 +118,7 @@
     margin-top: 2px;
 }
 
+/* Tom varukorg */
 .empty-cart {
     text-align: center;
     padding: var(--spacing-xl) 0;
@@ -162,12 +142,41 @@
     font-size: 0.95rem;
 }
 
+/* Knappar och actions */
+.cart-actions {
+    position: sticky;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    padding: var(--spacing-md);
+    display: flex;
+    gap: var(--spacing-md);
+    margin: var(--spacing-xl) -var(--spacing-md) -var(--spacing-md);
+    border-top: 1px solid var(--gray-200);
+}
+
+.action-button {
+    --border-radius: 0 !important;
+    --box-shadow: none !important;
+    min-height: 52px;
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+
+.action-button[color="danger"] {
+    --background: transparent !important;
+    --color: var(--ion-color-danger) !important;
+    border: 1px solid var(--ion-color-danger);
+}
+
+/* Laddningsindikator */
 .loading-spinner {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
 }
 
+/* Responsiv design */
 @media (max-width: 768px) {
     .cart-container {
         padding: var(--spacing-sm);

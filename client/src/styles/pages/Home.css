@@ -1,112 +1,81 @@
-/* Page Layout */
+/* Grundläggande variabler */
+:root {
+    --transition-speed: 0.3s;
+    --border-radius-sm: 8px;
+    --border-radius-md: 12px;
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Sidlayout */
 .home-page {
     background: var(--gray-200);
+    min-height: 100vh;
 }
 
 .container {
     max-width: var(--content-max-width);
     margin: 0 auto;
-    padding: var(--spacing-md);
-}
-
-/* Toggle Section */
-.toggle-container {
-    margin-bottom: var(--spacing-md);
-    background: var(--white);
-    padding: var(--spacing-sm);
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-ion-toggle {
-    display: block;
-    --background: var(--gray-300);
-    --background-checked: var(--brand-green);
-    --handle-background: var(--white);
-    --handle-background-checked: var(--white);
-}
-
-/* Loading State */
-.loading-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 60vh;
+    padding: clamp(var(--spacing-sm), 3vw, var(--spacing-md));
+    display: grid;
     gap: var(--spacing-md);
-    color: var(--ion-text-color-medium);
 }
 
-.loading-state ion-spinner {
-    --color: var(--ion-color-primary);
-}
-
-/* Empty State */
-.empty-state-container {
+/* State-hantering (loading/empty) */
+.state-container {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     min-height: 40vh;
     text-align: center;
-    padding: var(--spacing-xl);
+    padding: clamp(var(--spacing-lg), 5vw, var(--spacing-xl));
     background: var(--white);
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-md);
+    transition: transform var(--transition-speed) ease;
 }
 
-.empty-state-icon {
-    font-size: 48px;
+.state-container:hover {
+    transform: translateY(-2px);
+}
+
+.state-icon {
+    font-size: clamp(36px, 5vw, 48px);
     color: var(--ion-color-medium);
     margin-bottom: var(--spacing-md);
 }
 
-.empty-state-container h2 {
+.state-title {
     margin: 0 0 var(--spacing-sm) 0;
     color: var(--ion-text-color);
     font-weight: 600;
+    font-size: clamp(1.2rem, 3vw, 1.5rem);
 }
 
-.empty-state-container p {
+.state-description {
     margin: 0;
     color: var(--ion-text-color-medium);
+    max-width: 60ch;
 }
 
-/* Custom Refresher */
+/* Refresh-kontroll */
 .custom-refresher {
     --color: var(--ion-color-primary);
+    --pulley-font-size: 14px;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    .container {
-        padding: var(--spacing-sm);
-    }
-
-    .toggle-container {
-        margin-bottom: var(--spacing-sm);
-    }
-
-    .empty-state-container {
-        padding: var(--spacing-lg);
-    }
-
-    .empty-state-icon {
-        font-size: 36px;
-    }
-}
-
-@media (max-width: 480px) {
-    .empty-state-container h2 {
-        font-size: 1.2rem;
-    }
-}
-
-/* Reduced Motion */
+/* Tillgänglighetsanpassningar */
 @media (prefers-reduced-motion: reduce) {
-    .empty-state-container {
+    .state-container,
+    .state-container:hover {
         transition: none;
+        transform: none;
+    }
+}
+
+@media (prefers-contrast: high) {
+    .state-container {
+        border: 2px solid var(--ion-text-color);
     }
 }

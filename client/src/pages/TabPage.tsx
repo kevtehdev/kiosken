@@ -19,11 +19,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getIconForTab } from '../components/layout/TabBar';
 import '../styles/pages/TabPage.css';
 
+// Interface för TabSection props
 interface TabSectionProps {
     products: number[];
     name: string;
 }
 
+// Tab-sektion komponent för att visa produktkategorier
 const TabSection: React.FC<TabSectionProps> = ({ products, name }) => {
     const tabIcon = getIconForTab(name);
 
@@ -50,7 +52,7 @@ const TabSection: React.FC<TabSectionProps> = ({ products, name }) => {
             
             <div className="tab-products">
                 <div className="product-grid">
-                    {products.map((productId, index) => (
+                    {products.map((productId: number, index: number) => (
                         <ProductCard
                             key={productId}
                             productId={productId}
@@ -63,6 +65,7 @@ const TabSection: React.FC<TabSectionProps> = ({ products, name }) => {
     );
 };
 
+// Huvudkomponent för tab-sidan
 const TabPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const { state: { buttonMaps, loading } } = useApi();
