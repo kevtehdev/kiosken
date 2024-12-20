@@ -15,72 +15,108 @@ import { EmptyState } from "../components/common/EmptyState";
 import { CategorySection } from "../components/products/CategorySection";
 import { useStock } from "../hooks/useStock";
 import { MESSAGES } from "../constants/messages";
+import { API } from '@onslip/onslip-360-node-api';
+import { Category, Product } from "../types";
 import "../styles/pages/Home.css";
 
-const sortProducts = (products: any[], sortOrder: string) => {
-    // TODO: Implementera prissortering när prisdata är tillgänglig
+// Konverterar en ButtonMap från API:et till vår interna Category-struktur
+const processButtonMap = (map: API.ButtonMap): Category => {
+    return {
+        id: map.id ?? undefined,
+        name: map.name || '',
+        type: (map.type as Category['type']) || 'tablet-buttons',
+        buttons: map.buttons || [],
+        products: (map.buttons || [])
+            .filter((button): button is API.ButtonMapItem & { product: number } => 
+                typeof button.product === 'number')
+            .map(button => button.product)
+    };
+};
+
+// Hanterar sortering av produkter baserat på olika kriterier
+const sortProducts = (
+    products: number[], 
+    productData: Record<number, API.Product>, 
+    sortOrder: string
+): number[] => {
     switch (sortOrder) {
         case 'name-asc':
-            return [...products].sort((a, b) => String(a).localeCompare(String(b)));
+            return [...products].sort((a, b) => 
+                (productData[a]?.name || '').localeCompare(productData[b]?.name || ''));
         case 'name-desc':
-            return [...products].sort((a, b) => String(b).localeCompare(String(a)));
+            return [...products].sort((a, b) => 
+                (productData[b]?.name || '').localeCompare(productData[a]?.name || ''));
         case 'price-asc':
+            return [...products].sort((a, b) => 
+                (productData[a]?.price || 0) - (productData[b]?.price || 0));
         case 'price-desc':
-            console.log('Prissortering kommer implementeras senare');
-            return products;
+            return [...products].sort((a, b) => 
+                (productData[b]?.price || 0) - (productData[a]?.price || 0));
         default:
             return products;
     }
 };
 
+// Huvudkomponent för hemsidan
 const Home: React.FC = () => {
     const {
-        state: { buttonMaps, loading: apiLoading },
+        state: { buttonMaps, loading: apiLoading, products },
     } = useApi();
     const { filters } = useFilters();
     const { stock, error, loading: stockLoading } = useStock();
 
-    const filteredCategories = useMemo(() => {
-        if (!stock) return [];
+    // Skapar en effektiv lookup-struktur för produktdata
+    const productData = useMemo(() => {
+        if (!products || !Array.isArray(products)) return {} as Record<number, API.Product>;
         
-        let processedCategories = buttonMaps
+        return products.reduce<Record<number, API.Product>>((acc: Record<number, API.Product>, product: API.Product) => {
+            if (product.id !== undefined) {
+                acc[product.id] = product;
+            }
+            return acc;
+        }, {});
+    }, [products]);
+
+    // Filtrerar och bearbetar kategorier baserat på aktuella filter
+    const filteredCategories = useMemo(() => {
+        if (!stock || !buttonMaps) return [];
+        
+        return buttonMaps
             .filter(map => map.type === "tablet-buttons" && map.buttons?.length > 0)
-            .map(map => ({
-                ...map,
-                products: map.buttons
-                    .filter(button => button.product)
-                    .map(button => button.product!)
-            }));
+            .map(map => {
+                const category = processButtonMap(map);
+                let filteredProducts = [...category.products];
 
-        processedCategories = processedCategories.map(category => {
-            let filteredProducts = [...category.products];
+                if (filters.hideOutOfStock) {
+                    filteredProducts = filteredProducts.filter(productId => 
+                        stock.some(item => 
+                            item.id === productId && 
+                            item.quantity !== undefined && 
+                            item.quantity > 0
+                        )
+                    );
+                }
 
-            // Hantera produkter som är slut
-            if (filters.hideOutOfStock) {
-                filteredProducts = filteredProducts.filter(product => 
-                    stock.some(item => item.id === product && item.quantity! > 0)
-                );
-            }
+                if (filters.onlyShowDiscounts) {
+                    filteredProducts = filteredProducts.filter(productId => {
+                        const product = productData[productId];
+                        return product && 'discount-price' in product && product['discount-price'] !== undefined;
+                    });
+                }
 
-            // TODO: Implementera rabattfiltrering när prisdata är tillgänglig
-            if (filters.onlyShowDiscounts) {
-                console.log('Rabattfiltrering kommer implementeras senare');
-            }
+                if (filters.sortOrder !== 'none') {
+                    filteredProducts = sortProducts(filteredProducts, productData, filters.sortOrder);
+                }
 
-            // Sortera produkter
-            if (filters.sortOrder !== 'none') {
-                filteredProducts = sortProducts(filteredProducts, filters.sortOrder);
-            }
+                return {
+                    ...category,
+                    products: filteredProducts
+                };
+            })
+            .filter(category => category.products.length > 0);
+    }, [buttonMaps, stock, filters, productData]);
 
-            return {
-                ...category,
-                products: filteredProducts
-            };
-        });
-
-        return processedCategories;
-    }, [stock, filters, buttonMaps]);
-
+    // Hanterar siduppdatering
     const handleRefresh = (event: CustomEvent) => {
         window.location.reload();
         setTimeout(() => {
@@ -129,14 +165,12 @@ const Home: React.FC = () => {
                         ) : (
                             <>
                                 {filteredCategories.map((category, index) => (
-                                    category.products.length > 0 && (
-                                        <CategorySection
-                                            key={category.id}
-                                            category={category}
-                                            products={category.products}
-                                            index={index}
-                                        />
-                                    )
+                                    <CategorySection
+                                        key={category.id}
+                                        category={category}
+                                        products={category.products}
+                                        index={index}
+                                    />
                                 ))}
                             </>
                         )}

@@ -27,7 +27,9 @@ import "../styles/pages/Cart.css";
 import { API } from "@onslip/onslip-360-web-api";
 import { CartItemType } from "../types/payment.types";
 
+// Huvudkomponent för varukorgen
 export default function Cart() {
+    // State-hantering
     const [deliveryLocation, setDeliveryLocation] = useState<Customer | undefined>();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { state, dispatch } = useCart();
@@ -36,6 +38,7 @@ export default function Cart() {
     const [totalDiscount, setTotalDiscount] = useState<number>(0);
     const location = useLocation();
 
+    // Hantera betalningsstatus från redirect
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const status = params.get("status");
@@ -61,6 +64,7 @@ export default function Cart() {
         }
     }, [location, dispatch, presentToast]);
 
+    // Beräkna totalsumma och rabatt
     useEffect(() => {
         const calculateTotal = async () => {
             if (state.items.length > 0) {
@@ -80,6 +84,7 @@ export default function Cart() {
         calculateTotal();
     }, [state.items]);
 
+    // Formatera orderdata för API
     const formatOrderItems = () => {
         return state.items
             .filter((item): item is CartItemType => 
@@ -95,6 +100,7 @@ export default function Cart() {
             }));
     };
 
+    // Hantera orderprocessen
     async function handleSendOrder() {
         if (!deliveryLocation || state.items.length === 0) return;
 
@@ -163,11 +169,13 @@ export default function Cart() {
         }
     }
 
+    // Rendering av komponenten
     return (
         <IonPage>
             <Header />
             <IonContent>
                 <div className="cart-container">
+                    {/* Sektion för val av leveransplats */}
                     <section className="cart-section">
                         <div className="cart-section-header">
                             <h2 className="section-title">Välj leveransplats</h2>
@@ -177,6 +185,7 @@ export default function Cart() {
                         </div>
                     </section>
 
+                    {/* Varukorgssektion */}
                     <section className="cart-section">
                         <div className="cart-section-header">
                             <h2 className="section-title">Din varukorg</h2>
@@ -233,6 +242,7 @@ export default function Cart() {
                         </div>
                     </section>
 
+                    {/* Leveransinformation och knappar */}
                     {state.items.length > 0 && (
                         <>
                             <section className="cart-section">

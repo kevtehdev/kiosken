@@ -1,11 +1,11 @@
-/* Container */
+/* Huvudcontainer */
 .container {
   max-width: var(--content-max-width);
   margin: 0 auto;
   padding: var(--spacing-md);
 }
 
-/* Laddningstillstånd */
+/* Laddning och tomma tillstånd */
 .loading-state {
   display: flex;
   flex-direction: column;
@@ -20,7 +20,6 @@
   --color: var(--ion-color-primary);
 }
 
-/* Tomt tillstånd */
 .empty-state-container {
   display: flex;
   flex-direction: column;
@@ -51,7 +50,7 @@
   color: var(--ion-text-color-medium);
 }
 
-/* Tab Sektion */
+/* Tab-layout och design */
 .tab-section {
   margin-bottom: var(--spacing-xl);
   background: #FFFFFF;
@@ -61,7 +60,6 @@
   overflow: hidden;
 }
 
-/* Tab Header */
 .tab-header {
   background: var(--black);
   border-radius: 12px 12px 0 0;
@@ -97,19 +95,18 @@
   font-weight: 600;
 }
 
-/* Tab Produkter */
+/* Produktgrid och innehåll */
 .tab-products {
   padding: var(--spacing-md);
 }
 
-/* Produktrutnät */
 .product-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--spacing-md);
 }
 
-/* Anpassad uppdaterare */
+/* Uppdateringsfunktionalitet */
 .custom-refresher {
   --color: var(--ion-color-primary);
 }
