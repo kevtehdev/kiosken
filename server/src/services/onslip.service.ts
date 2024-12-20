@@ -569,7 +569,9 @@ export class OnslipService {
                 },
                 body: JSON.stringify({
                     grant_type: "authorization_code",
-                    client_id: integrationConfig.integration.alias,
+                    client_id:
+                        env.onslip.clientId ||
+                        integrationConfig.integration.alias,
                     redirect_uri: env.onslip.redirectUri,
                     code,
                     code_verifier: codeVerifier,
