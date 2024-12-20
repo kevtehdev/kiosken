@@ -61,10 +61,17 @@
 
 .modern-header ion-button {
   --color: var(--white);
+  --padding-start: var(--spacing-xs);
+  --padding-end: var(--spacing-xs);
 }
 
 .modern-header ion-button:hover {
   opacity: 0.9;
+}
+
+.modern-header ion-icon {
+  font-size: 24px;
+  color: var(--white);
 }
 
 .modern-header::after {
@@ -79,6 +86,6 @@
 
 @media (max-width: 768px) {
   .header-container {
-      padding: 0 var(--spacing-sm);
+    padding: 0 var(--spacing-sm);
   }
 }

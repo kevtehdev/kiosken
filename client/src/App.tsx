@@ -11,6 +11,7 @@ import { IonReactRouter } from "@ionic/react-router";
 import { ApiProvider } from "./contexts/apiContext";
 import { CustomerProvider } from "./contexts/userContext";
 import { CartProvider } from "./contexts/cartContext";
+import { FilterProvider } from "./contexts/filterContext";
 import { useApi } from "./contexts/apiContext";
 import { TabBar } from "./components/layout/TabBar";
 
@@ -39,6 +40,8 @@ import "./theme/variables.css";
 import "./styles/pages/Home.css";
 import "./styles/components/products/ProductCard.css";
 import "./styles/components/products/CategorySection.css";
+import "./styles/components/layout/Header.css";
+import "./styles/components/layout/TabBar.css";
 
 setupIonicReact();
 
@@ -69,11 +72,13 @@ const App: React.FC = () => {
             <ApiProvider>
                 <CustomerProvider>
                     <CartProvider>
-                        <IonReactRouter>
-                            <IonRouterOutlet>
-                                <Route path="/" render={() => <TabsContainer />} />
-                            </IonRouterOutlet>
-                        </IonReactRouter>
+                        <FilterProvider>
+                            <IonReactRouter>
+                                <IonRouterOutlet>
+                                    <Route path="/" render={() => <TabsContainer />} />
+                                </IonRouterOutlet>
+                            </IonReactRouter>
+                        </FilterProvider>
                     </CartProvider>
                 </CustomerProvider>
             </ApiProvider>

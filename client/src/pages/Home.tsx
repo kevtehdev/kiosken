@@ -1,14 +1,14 @@
-import React, { useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import {
     IonContent,
     IonPage,
     IonRefresher,
     IonRefresherContent,
-    IonToggle,
 } from "@ionic/react";
 import { refreshOutline, homeOutline, alertCircleOutline } from "ionicons/icons";
 import { AnimatePresence } from "framer-motion";
 import { useApi } from "../contexts/apiContext";
+import { useFilters } from "../contexts/filterContext";
 import { Header } from "../components/layout/Header";
 import { LoadingState } from "../components/common/LoadingState";
 import { EmptyState } from "../components/common/EmptyState";
@@ -17,32 +17,69 @@ import { useStock } from "../hooks/useStock";
 import { MESSAGES } from "../constants/messages";
 import "../styles/pages/Home.css";
 
+const sortProducts = (products: any[], sortOrder: string) => {
+    // TODO: Implementera prissortering när prisdata är tillgänglig
+    switch (sortOrder) {
+        case 'name-asc':
+            return [...products].sort((a, b) => String(a).localeCompare(String(b)));
+        case 'name-desc':
+            return [...products].sort((a, b) => String(b).localeCompare(String(a)));
+        case 'price-asc':
+        case 'price-desc':
+            console.log('Prissortering kommer implementeras senare');
+            return products;
+        default:
+            return products;
+    }
+};
+
 const Home: React.FC = () => {
     const {
         state: { buttonMaps, loading: apiLoading },
     } = useApi();
-    const [filterOutOfStock, setFilterOutOfStock] = useState(true);
+    const { filters } = useFilters();
     const { stock, error, loading: stockLoading } = useStock();
 
     const filteredCategories = useMemo(() => {
         if (!stock) return [];
         
-        return buttonMaps
+        let processedCategories = buttonMaps
             .filter(map => map.type === "tablet-buttons" && map.buttons?.length > 0)
             .map(map => ({
                 ...map,
                 products: map.buttons
                     .filter(button => button.product)
                     .map(button => button.product!)
-            }))
-            .map(category => ({
-                ...category,
-                products: filterOutOfStock
-                    ? category.products.filter(product => 
-                        stock.some(item => item.id === product && item.quantity! > 0))
-                    : category.products
             }));
-    }, [stock, filterOutOfStock, buttonMaps]);
+
+        processedCategories = processedCategories.map(category => {
+            let filteredProducts = [...category.products];
+
+            // Hantera produkter som är slut
+            if (filters.hideOutOfStock) {
+                filteredProducts = filteredProducts.filter(product => 
+                    stock.some(item => item.id === product && item.quantity! > 0)
+                );
+            }
+
+            // TODO: Implementera rabattfiltrering när prisdata är tillgänglig
+            if (filters.onlyShowDiscounts) {
+                console.log('Rabattfiltrering kommer implementeras senare');
+            }
+
+            // Sortera produkter
+            if (filters.sortOrder !== 'none') {
+                filteredProducts = sortProducts(filteredProducts, filters.sortOrder);
+            }
+
+            return {
+                ...category,
+                products: filteredProducts
+            };
+        });
+
+        return processedCategories;
+    }, [stock, filters, buttonMaps]);
 
     const handleRefresh = (event: CustomEvent) => {
         window.location.reload();
@@ -91,14 +128,6 @@ const Home: React.FC = () => {
                             />
                         ) : (
                             <>
-                                <div className="toggle-container">
-                                    <IonToggle
-                                        onClick={() => setFilterOutOfStock(!filterOutOfStock)}
-                                        checked={filterOutOfStock}
-                                    >
-                                        {MESSAGES.ACTIONS.HIDE_OUT_OF_STOCK}
-                                    </IonToggle>
-                                </div>
                                 {filteredCategories.map((category, index) => (
                                     category.products.length > 0 && (
                                         <CategorySection
