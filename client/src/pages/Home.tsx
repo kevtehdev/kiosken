@@ -15,7 +15,7 @@ import { EmptyState } from "../components/common/EmptyState";
 import { CategorySection } from "../components/products/CategorySection";
 import { useStock } from "../hooks/useStock";
 import { MESSAGES } from "../constants/messages";
-import { API } from '@onslip/onslip-360-node-api';
+import { API } from '@onslip/onslip-360-web-api';
 import { Category, Product } from "../types";
 import "../styles/pages/Home.css";
 
