@@ -5,7 +5,11 @@ import {
     IonRefresher,
     IonRefresherContent,
 } from "@ionic/react";
-import { refreshOutline, homeOutline, alertCircleOutline } from "ionicons/icons";
+import {
+    refreshOutline,
+    homeOutline,
+    alertCircleOutline,
+} from "ionicons/icons";
 import { AnimatePresence } from "framer-motion";
 import { useApi } from "../contexts/apiContext";
 import { useFilters } from "../contexts/filterContext";
@@ -23,35 +27,47 @@ import "../styles/pages/Home.css";
 const processButtonMap = (map: API.ButtonMap): Category => {
     return {
         id: map.id ?? undefined,
-        name: map.name || '',
-        type: (map.type as Category['type']) || 'tablet-buttons',
+        name: map.name || "",
+        type: (map.type as Category["type"]) || "tablet-buttons",
         buttons: map.buttons || [],
         products: (map.buttons || [])
-            .filter((button): button is API.ButtonMapItem & { product: number } => 
-                typeof button.product === 'number')
-            .map(button => button.product)
+            .filter(
+                (button): button is API.ButtonMapItem & { product: number } =>
+                    typeof button.product === "number"
+            )
+            .map((button) => button.product),
     };
 };
 
 // Hanterar sortering av produkter baserat på olika kriterier
 const sortProducts = (
-    products: number[], 
-    productData: Record<number, API.Product>, 
+    products: number[],
+    productData: Record<number, API.Product>,
     sortOrder: string
 ): number[] => {
     switch (sortOrder) {
-        case 'name-asc':
-            return [...products].sort((a, b) => 
-                (productData[a]?.name || '').localeCompare(productData[b]?.name || ''));
-        case 'name-desc':
-            return [...products].sort((a, b) => 
-                (productData[b]?.name || '').localeCompare(productData[a]?.name || ''));
-        case 'price-asc':
-            return [...products].sort((a, b) => 
-                (productData[a]?.price || 0) - (productData[b]?.price || 0));
-        case 'price-desc':
-            return [...products].sort((a, b) => 
-                (productData[b]?.price || 0) - (productData[a]?.price || 0));
+        case "name-asc":
+            return [...products].sort((a, b) =>
+                (productData[a]?.name || "").localeCompare(
+                    productData[b]?.name || ""
+                )
+            );
+        case "name-desc":
+            return [...products].sort((a, b) =>
+                (productData[b]?.name || "").localeCompare(
+                    productData[a]?.name || ""
+                )
+            );
+        case "price-asc":
+            return [...products].sort(
+                (a, b) =>
+                    (productData[a]?.price || 0) - (productData[b]?.price || 0)
+            );
+        case "price-desc":
+            return [...products].sort(
+                (a, b) =>
+                    (productData[b]?.price || 0) - (productData[a]?.price || 0)
+            );
         default:
             return products;
     }
@@ -67,53 +83,69 @@ const Home: React.FC = () => {
 
     // Skapar en effektiv lookup-struktur för produktdata
     const productData = useMemo(() => {
-        if (!products || !Array.isArray(products)) return {} as Record<number, API.Product>;
-        
-        return products.reduce<Record<number, API.Product>>((acc: Record<number, API.Product>, product: API.Product) => {
-            if (product.id !== undefined) {
-                acc[product.id] = product;
-            }
-            return acc;
-        }, {});
+        if (!products || !Array.isArray(products))
+            return {} as Record<number, API.Product>;
+
+        return products.reduce<Record<number, API.Product>>(
+            (acc: Record<number, API.Product>, product: API.Product) => {
+                if (product.id !== undefined) {
+                    acc[product.id] = product;
+                }
+                return acc;
+            },
+            {}
+        );
     }, [products]);
 
     // Filtrerar och bearbetar kategorier baserat på aktuella filter
     const filteredCategories = useMemo(() => {
         if (!stock || !buttonMaps) return [];
-        
+
         return buttonMaps
-            .filter(map => map.type === "tablet-buttons" && map.buttons?.length > 0)
-            .map(map => {
+            .filter(
+                (map) =>
+                    map.type === "tablet-buttons" && map.buttons?.length > 0
+            )
+            .map((map) => {
                 const category = processButtonMap(map);
                 let filteredProducts = [...category.products];
 
                 if (filters.hideOutOfStock) {
-                    filteredProducts = filteredProducts.filter(productId => 
-                        stock.some(item => 
-                            item.id === productId && 
-                            item.quantity !== undefined && 
-                            item.quantity > 0
+                    filteredProducts = filteredProducts.filter((productId) =>
+                        stock.some(
+                            (item) =>
+                                item.id === productId &&
+                                item.quantity !== undefined &&
+                                item.quantity > 0
                         )
                     );
                 }
 
                 if (filters.onlyShowDiscounts) {
-                    filteredProducts = filteredProducts.filter(productId => {
+                    filteredProducts = filteredProducts.filter((productId) => {
                         const product = productData[productId];
-                        return product && 'discount-price' in product && product['discount-price'] !== undefined;
+                        return (
+                            product &&
+                            "discount-price" in product &&
+                            product["discount-price"] !== undefined
+                        );
                     });
                 }
 
-                if (filters.sortOrder !== 'none') {
-                    filteredProducts = sortProducts(filteredProducts, productData, filters.sortOrder);
+                if (filters.sortOrder !== "none") {
+                    filteredProducts = sortProducts(
+                        filteredProducts,
+                        productData,
+                        filters.sortOrder
+                    );
                 }
 
                 return {
                     ...category,
-                    products: filteredProducts
+                    products: filteredProducts,
                 };
             })
-            .filter(category => category.products.length > 0);
+            .filter((category) => category.products.length > 0);
     }, [buttonMaps, stock, filters, productData]);
 
     // Hanterar siduppdatering
@@ -160,7 +192,9 @@ const Home: React.FC = () => {
                             <EmptyState
                                 icon={homeOutline}
                                 title={MESSAGES.EMPTY_STATES.PRODUCTS.TITLE}
-                                description={MESSAGES.EMPTY_STATES.PRODUCTS.DESCRIPTION}
+                                description={
+                                    MESSAGES.EMPTY_STATES.PRODUCTS.DESCRIPTION
+                                }
                             />
                         ) : (
                             <>
