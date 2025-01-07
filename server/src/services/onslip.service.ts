@@ -632,14 +632,13 @@ export class OnslipService {
                 throw new Error("Order items are required");
             }
 
-            const items = order.items.map((item) => ({
-                ...item,
-                amount: -(item.price || 0) * (item.quantity || 1),
-            }));
+            // const items = order.items.map((item) => ({
+            //     ...item,
+            //     amount: -(item.price || 0) * (item.quantity || 1),
+            // }));
 
-            const totalAmount = items.reduce(
-                (sum, item) => sum + Math.abs(item.amount),
-                0
+            const totalAmount = await OnslipService.instance.calcTotal(
+                order.items
             );
 
             const externalRecord: API.ExternalRecord = {
@@ -649,20 +648,22 @@ export class OnslipService {
                 description: `Web order ${orderId}`,
                 receipt: {
                     type: "sale",
-                    items: items,
+                    items: order.items,
                     payments: [
                         {
                             method: "card",
-                            amount: -totalAmount,
+                            amount: -28.8,
                             name: "Card Payment",
                         },
                     ],
                     change: 0,
-                    rounding: 0,
                     reference: `${orderId}`,
                     "our-reference": `${orderId}`,
                 },
             };
+
+            console.log("reciept", externalRecord.receipt);
+            console.log(externalRecord);
 
             const res = await OnslipService.instance.api.addExternalRecord(
                 OnslipService.instance.journal,

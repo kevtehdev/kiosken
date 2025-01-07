@@ -40,7 +40,12 @@ export class PaymentController {
 
             console.log("BODY", req.body);
 
-            for (const item of order.items ?? []) {
+            if (!order.items || order.items.length === 0) {
+                return;
+            }
+
+            for (let i = 0; i < order.items.length; i++) {
+                let item = order.items[i];
                 if (!item["product-group"] || !item.price) {
                     continue;
                 }
@@ -49,11 +54,29 @@ export class PaymentController {
                     item["product-group"]
                 );
 
+                const bestCampaign = await this.onslipService.findBestCampaign(
+                    item.product!
+                );
+
+                console.log("Best Campaign", bestCampaign?.rules[0].products);
+
+                item.price = 9.6;
+
                 item["vat-rate"] = productGroup["vat-rate"];
                 const priceWithoutVAT =
                     item.price / (1 + item["vat-rate"] / 100);
                 item["vat-amount"] =
                     Math.round((item.price - priceWithoutVAT) * 100) / 100;
+
+                const subItems = [item];
+
+                order.items[i] = {
+                    type: "campaigns",
+                    campaign: bestCampaign!.id!,
+                    quantity: 1,
+                    "product-name": bestCampaign!.name!,
+                    "sub-items": subItems,
+                };
             }
 
             console.log("ORDERITEMS", order.items);
