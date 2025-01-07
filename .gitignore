@@ -10,7 +10,11 @@
 /coverage
 
 # production
-/dist
+/server/dist
+/client/dist
+/server/build
+/client/build
+
 
 # misc
 .DS_Store
@@ -35,3 +39,6 @@ yarn-error.log*
 server/combined.log
 *.log
 server/error.log
+
+# Docker
+docker-compose.override.yml
