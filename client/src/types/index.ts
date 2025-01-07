@@ -1,20 +1,25 @@
-import { API } from '@onslip/onslip-360-node-api';
+import { API } from "@onslip/onslip-360-web-api";
 
 export type Product = API.Product;
 
 export interface CartItem {
     product: number;
-    'product-name': string;
+    "product-name": string;
     quantity: number;
     price?: number;
-    type: 'goods';
+    type: "goods";
 }
 
 export interface Category {
     products: number[];
     id?: number;
     name: string;
-    type: "menu" | "tablet-groups" | "tablet-buttons" | "phone-buttons" | "menu-section";
+    type:
+        | "menu"
+        | "tablet-groups"
+        | "tablet-buttons"
+        | "phone-buttons"
+        | "menu-section";
     buttons: API.ButtonMapItem[];
 }
 
@@ -28,7 +33,7 @@ export interface Campaign {
     id: number;
     name: string;
     type: string;
-    'discount-rate'?: number;
+    "discount-rate"?: number;
     amount?: number;
     rules: Array<{
         products: number[];
