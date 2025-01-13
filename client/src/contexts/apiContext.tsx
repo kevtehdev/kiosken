@@ -10,7 +10,7 @@ import { API } from "@onslip/onslip-360-web-api";
 
 interface ApiState {
     buttonMaps: API.ButtonMap[];
-    products: { [key: number]: API.Product };
+    products: Record<number, API.Product>;
     loading: boolean;
     error: Error | null;
 }
@@ -20,7 +20,7 @@ type ApiAction =
           type: "FETCH_SUCCESS";
           payload: {
               buttonMaps: API.ButtonMap[];
-              products: { [key: number]: API.Product };
+              products: Record<number, API.Product>;
           };
       }
     | { type: "FETCH_ERROR"; payload: Error };
@@ -52,13 +52,10 @@ const apiReducer = (state: ApiState, action: ApiAction): ApiState => {
     }
 };
 
-const ApiContext = createContext<
-    | {
-          state: ApiState;
-          dispatch: React.Dispatch<ApiAction>;
-      }
-    | undefined
->(undefined);
+const ApiContext = createContext<{
+    state: ApiState;
+    dispatch: React.Dispatch<ApiAction>;
+} | undefined>(undefined);
 
 export const ApiProvider: React.FC<{ children: ReactNode }> = ({
     children,

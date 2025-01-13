@@ -20,120 +20,86 @@ import { CategorySection } from "../components/products/CategorySection";
 import { useStock } from "../hooks/useStock";
 import { MESSAGES } from "../constants/messages";
 import { API } from '@onslip/onslip-360-web-api';
-import { Category, Product } from "../types";
+import { Category } from "../types";
+import { sortProducts } from "../utils/sortUtils";
 import "../styles/pages/Home.css";
 
-// Konverterar en ButtonMap från API:et till vår interna Category-struktur
-const processButtonMap = (map: API.ButtonMap): Category => {
-    return {
-        id: map.id ?? undefined,
-        name: map.name || "",
-        type: (map.type as Category["type"]) || "tablet-buttons",
-        buttons: map.buttons || [],
-        products: (map.buttons || [])
-            .filter(
-                (button): button is API.ButtonMapItem & { product: number } =>
-                    typeof button.product === "number"
-            )
-            .map((button) => button.product),
-    };
-};
+type ProductWithDiscount = API.Product & {
+    'discount-price'?: number;
+}
 
-// Hanterar sortering av produkter baserat på olika kriterier
-const sortProducts = (
-    products: number[],
-    productData: Record<number, API.Product>,
-    sortOrder: string
-): number[] => {
-    switch (sortOrder) {
-        case "name-asc":
-            return [...products].sort((a, b) =>
-                (productData[a]?.name || "").localeCompare(
-                    productData[b]?.name || ""
-                )
-            );
-        case "name-desc":
-            return [...products].sort((a, b) =>
-                (productData[b]?.name || "").localeCompare(
-                    productData[a]?.name || ""
-                )
-            );
-        case "price-asc":
-            return [...products].sort(
-                (a, b) =>
-                    (productData[a]?.price || 0) - (productData[b]?.price || 0)
-            );
-        case "price-desc":
-            return [...products].sort(
-                (a, b) =>
-                    (productData[b]?.price || 0) - (productData[a]?.price || 0)
-            );
-        default:
-            return products;
-    }
-};
+type ExtendedProduct = ProductWithDiscount;
 
-// Huvudkomponent för hemsidan
+const processButtonMap = (map: API.ButtonMap): Category => ({
+    id: map.id ?? undefined,
+    name: map.name || "",
+    type: (map.type as Category["type"]) || "tablet-buttons",
+    buttons: map.buttons || [],
+    products: (map.buttons || [])
+        .filter(
+            (button): button is API.ButtonMapItem & { product: number } =>
+                typeof button.product === "number"
+        )
+        .map((button) => button.product),
+});
+
 const Home: React.FC = () => {
     const {
-        state: { buttonMaps, loading: apiLoading, products },
+        state: { buttonMaps, loading: apiLoading, products: apiProducts },
     } = useApi();
     const { filters } = useFilters();
     const { stock, error, loading: stockLoading } = useStock();
 
-    // Skapar en effektiv lookup-struktur för produktdata
     const productData = useMemo(() => {
-        if (!products || !Array.isArray(products))
-            return {} as Record<number, API.Product>;
+        if (!apiProducts) {
+            return {} as Record<number, ExtendedProduct>;
+        }
 
-        return products.reduce<Record<number, API.Product>>(
-            (acc: Record<number, API.Product>, product: API.Product) => {
-                if (product.id !== undefined) {
-                    acc[product.id] = product;
-                }
-                return acc;
-            },
-            {}
-        );
-    }, [products]);
+        const result: Record<number, ExtendedProduct> = {};
+        for (const [key, product] of Object.entries(apiProducts)) {
+            const id = parseInt(key);
+            if (!isNaN(id) && product) {
+                result[id] = {
+                    ...product,
+                    id,
+                    'discount-price': (product as ProductWithDiscount)['discount-price']
+                };
+            }
+        }
 
-    // Filtrerar och bearbetar kategorier baserat på aktuella filter
+        return result;
+    }, [apiProducts]);
+
     const filteredCategories = useMemo(() => {
-        if (!stock || !buttonMaps) return [];
+        if (!buttonMaps?.length) {
+            return [];
+        }
 
         return buttonMaps
-            .filter(
-                (map) =>
-                    map.type === "tablet-buttons" && map.buttons?.length > 0
-            )
+            .filter((map) => map.type === "tablet-buttons" && map.buttons?.length > 0)
             .map((map) => {
                 const category = processButtonMap(map);
                 let filteredProducts = [...category.products];
 
-                if (filters.hideOutOfStock) {
-                    filteredProducts = filteredProducts.filter((productId) =>
-                        stock.some(
-                            (item) =>
-                                item.id === productId &&
-                                item.quantity !== undefined &&
-                                item.quantity > 0
-                        )
-                    );
+                if (filters.hideOutOfStock && stock?.length) {
+                    filteredProducts = filteredProducts.filter((productId) => {
+                        const stockItem = stock.find(item => item.id === productId);
+                        return stockItem?.quantity !== undefined && stockItem.quantity > 0;
+                    });
                 }
 
                 if (filters.onlyShowDiscounts) {
                     filteredProducts = filteredProducts.filter((productId) => {
-                        const product = productData[productId];
-                        return (
-                            product &&
-                            "discount-price" in product &&
-                            product["discount-price"] !== undefined
-                        );
+                        const product = productData[productId] as ExtendedProduct;
+                        return product && 
+                            typeof product['discount-price'] === 'number' && 
+                            product['discount-price'] > 0;
                     });
                 }
 
-                if (filters.sortOrder !== "none") {
-                    filteredProducts = sortProducts(
+                let sortedProducts = filteredProducts;
+                if (filters.sortOrder !== "none" && filteredProducts.length > 0) {
+                    sortedProducts = sortProducts(
                         filteredProducts,
                         productData,
                         filters.sortOrder
@@ -142,13 +108,12 @@ const Home: React.FC = () => {
 
                 return {
                     ...category,
-                    products: filteredProducts,
+                    products: sortedProducts,
                 };
             })
             .filter((category) => category.products.length > 0);
     }, [buttonMaps, stock, filters, productData]);
 
-    // Hanterar siduppdatering
     const handleRefresh = (event: CustomEvent) => {
         window.location.reload();
         setTimeout(() => {
@@ -200,7 +165,7 @@ const Home: React.FC = () => {
                             <>
                                 {filteredCategories.map((category, index) => (
                                     <CategorySection
-                                        key={category.id}
+                                        key={category.id || index}
                                         category={category}
                                         products={category.products}
                                         index={index}

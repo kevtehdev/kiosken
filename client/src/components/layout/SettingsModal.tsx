@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useCallback } from 'react';
 import {
     IonContent,
     IonToolbar,
@@ -16,6 +16,7 @@ import {
 } from '@ionic/react';
 import { settingsOutline } from 'ionicons/icons';
 import { useFilters } from '../../contexts/filterContext';
+import { SortOrder } from '../../types/filter.types';
 import '../../styles/components/layout/SettingsModal.css';
 
 interface SettingsModalProps {
@@ -30,10 +31,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     const modal = useRef<HTMLIonModalElement>(null);
     const { filters, updateFilters } = useFilters();
 
-    const dismiss = () => {
+    const handleSortChange = useCallback((value: SortOrder) => {
+        updateFilters({ sortOrder: value });
+    }, [updateFilters]);
+
+    const handleToggleChange = useCallback((key: 'hideOutOfStock' | 'onlyShowDiscounts', checked: boolean) => {
+        updateFilters({ [key]: checked });
+    }, [updateFilters]);
+
+    const dismiss = useCallback(() => {
         modal.current?.dismiss();
         onClose();
-    };
+    }, [onClose]);
 
     return (
         <IonModal 
@@ -49,19 +58,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <IonTitle>Inställningar</IonTitle>
                     </div>
                     <IonButtons slot="end">
-                        <IonButton onClick={() => dismiss()}>
+                        <IonButton onClick={dismiss}>
                             Stäng
                         </IonButton>
                     </IonButtons>
                 </IonToolbar>
 
                 <IonList>
-                    {/* Sortering */}
                     <IonItem>
                         <IonLabel>Sortera efter</IonLabel>
                         <IonSelect
                             value={filters.sortOrder}
-                            onIonChange={e => updateFilters({ sortOrder: e.detail.value })}
+                            onIonChange={e => handleSortChange(e.detail.value)}
+                            interface="popover"
                         >
                             <IonSelectOption value="none">Standard</IonSelectOption>
                             <IonSelectOption value="price-asc">Billigast först</IonSelectOption>
@@ -71,12 +80,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         </IonSelect>
                     </IonItem>
 
-                    {/* Filter toggles */}
                     <IonItem>
                         <IonLabel>Göm produkter som är slut</IonLabel>
                         <IonToggle
                             checked={filters.hideOutOfStock}
-                            onIonChange={e => updateFilters({ hideOutOfStock: e.detail.checked })}
+                            onIonChange={e => handleToggleChange('hideOutOfStock', e.detail.checked)}
                         />
                     </IonItem>
 
@@ -84,7 +92,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <IonLabel>Visa endast rabatterade</IonLabel>
                         <IonToggle
                             checked={filters.onlyShowDiscounts}
-                            onIonChange={e => updateFilters({ onlyShowDiscounts: e.detail.checked })}
+                            onIonChange={e => handleToggleChange('onlyShowDiscounts', e.detail.checked)}
                         />
                     </IonItem>
                 </IonList>

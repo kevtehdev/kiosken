@@ -45,10 +45,10 @@ export const Header: React.FC<HeaderProps> = ({ title }) => {
                                 Kampanjer
                             </IonRouterLink>
                             <IonButtons slot="end">
-                                <CartIcon />
-                                <IonButton onClick={() => setIsSettingsOpen(true)}>
+                                                                <IonButton onClick={() => setIsSettingsOpen(true)}>
                                     <IonIcon icon={settingsOutline} />
                                 </IonButton>
+                                <CartIcon />
                             </IonButtons>
                         </div>
                     </div>

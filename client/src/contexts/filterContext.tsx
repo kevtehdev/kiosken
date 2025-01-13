@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState } from 'react';
-import { FilterSettings, SortOrder } from '../types/filter.types';
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import { FilterSettings } from '../types/filter.types';
 
 interface FilterContextType {
     filters: FilterSettings;
@@ -15,12 +15,20 @@ export const FilterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         onlyShowDiscounts: false
     });
 
-    const updateFilters = (updates: Partial<FilterSettings>) => {
-        setFilters(prev => ({ ...prev, ...updates }));
+    const updateFilters = useCallback((updates: Partial<FilterSettings>) => {
+        setFilters(prev => ({
+            ...prev,
+            ...updates
+        }));
+    }, []); 
+
+    const contextValue = {
+        filters,
+        updateFilters
     };
 
     return (
-        <FilterContext.Provider value={{ filters, updateFilters }}>
+        <FilterContext.Provider value={contextValue}>
             {children}
         </FilterContext.Provider>
     );
