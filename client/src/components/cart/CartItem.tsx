@@ -1,4 +1,3 @@
-// components/cart/CartItem.tsx
 import React, { useEffect, useState } from "react";
 import { IonButton, IonItem, IonIcon, IonLabel, IonNote } from "@ionic/react";
 import { add, remove, trash } from "ionicons/icons";
@@ -24,7 +23,7 @@ export const CartItem: React.FC<CartItemProps> = ({ item }) => {
             
             try {
                 const response = await api.calculateDiscount({
-                    originalPrice: item.price * item.quantity,
+                    originalPrice: item.price,  // Ändrat: Skickar bara originalpriset utan multiplikation
                     campaign: { productId: item.product },
                 });
                 setDiscountedPrice(response.discountedPrice);
@@ -34,7 +33,7 @@ export const CartItem: React.FC<CartItemProps> = ({ item }) => {
         }
 
         fetchDiscountedPrice();
-    }, [item.price, item.product, item.quantity]);
+    }, [item.price, item.product]); // Tagit bort item.quantity från dependencies
 
     const handleIncrement = () => {
         if (!item.product) return;
@@ -70,7 +69,8 @@ export const CartItem: React.FC<CartItemProps> = ({ item }) => {
     };
 
     const totalPrice = (item.price || 0) * item.quantity;
-    const discount = discountedPrice !== null ? totalPrice - discountedPrice : 0;
+    const itemDiscountedPrice = discountedPrice !== null ? discountedPrice * item.quantity : null;
+    const showDiscount = discountedPrice !== null && discountedPrice < (item.price || 0);
 
     return (
         <IonItem className="cart-item">
@@ -80,14 +80,16 @@ export const CartItem: React.FC<CartItemProps> = ({ item }) => {
                         {item["product-name"]} {item.quantity} st
                     </IonLabel>
                     <div slot="end">
-                        {discount > 0 ? (
+                        {showDiscount ? (
                             <div className="cart-item-price-container">
                                 <IonNote className="cart-item__price">
                                     {totalPrice.toFixed(2)} kr
                                 </IonNote>
-                                <IonNote className="reduced-price">
-                                    -{discount.toFixed(2)} kr
-                                </IonNote>
+                                {itemDiscountedPrice !== null && (
+                                    <IonNote className="reduced-price">
+                                        {itemDiscountedPrice.toFixed(2)} kr
+                                    </IonNote>
+                                )}
                             </div>
                         ) : (
                             <IonNote className="cart-item__price">
