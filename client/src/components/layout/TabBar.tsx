@@ -6,35 +6,9 @@ import {
     IonLabel,
 } from '@ionic/react';
 import { useLocation } from 'react-router-dom';
-import { 
-    iceCreamOutline,
-    restaurantOutline,
-    beerOutline,
-    bagHandleOutline,
-    fastFoodOutline,
-    cartOutline
-} from 'ionicons/icons';
 import { API } from '@onslip/onslip-360-web-api';
+import { getIconForTab } from '../../utils/iconUtils';
 import '../../styles/components/layout/TabBar.css';
-
-export const getIconForTab = (name: string) => {
-    const normalizedName = name.toLowerCase();
-    
-    const iconMap: Record<string, string> = {
-        glass: iceCreamOutline,
-        godis: bagHandleOutline,
-        snacks: bagHandleOutline,
-        dryck: beerOutline,
-        läsk: beerOutline,
-        frukost: fastFoodOutline,
-        macka: fastFoodOutline,
-        lunch: restaurantOutline,
-        mat: restaurantOutline,
-    };
-
-    return Object.entries(iconMap).find(([key]) => 
-        normalizedName.includes(key))?.[1] || cartOutline;
-};
 
 interface TabBarProps {
     buttonMaps: API.ButtonMap[];
