@@ -1,8 +1,6 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     IonCard,
-    IonCardHeader,
-    IonCardTitle,
     IonCardContent,
     IonButton,
     IonSkeletonText,
@@ -11,18 +9,17 @@ import {
     IonIcon,
     IonRippleEffect,
     IonImg,
-    IonCardSubtitle,
-} from "@ionic/react";
+} from '@ionic/react';
 import {
     cartOutline,
-    flashOutline,
     checkmarkCircleOutline,
-} from "ionicons/icons";
-import { motion, AnimatePresence } from "framer-motion";
-import { useApi } from "../../contexts/apiContext";
-import { useCart } from "../../contexts/cartContext";
-import { API } from "@onslip/onslip-360-web-api";
-import { api } from "../../services/api";
+    alertCircleOutline,
+} from 'ionicons/icons';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useApi } from '../../contexts/apiContext';
+import { useCart } from '../../contexts/cartContext';
+import { API } from '@onslip/onslip-360-web-api';
+import { api } from '../../services/api';
 import "../../styles/components/products/ProductCard.css";
 
 interface ProductCardProps {
@@ -30,111 +27,149 @@ interface ProductCardProps {
     index?: number;
 }
 
+interface CampaignState {
+    display: string | number | null;
+    data: API.Campaign | null;
+    reducedPrice: number | null;
+}
+
 export const ProductCard: React.FC<ProductCardProps> = ({
     productId,
     index = 0,
 }) => {
-    const {
-        state: { products, loading },
-    } = useApi();
+    const { state: { products, loading } } = useApi();
     const product = products[productId];
     const { dispatch } = useCart();
-    const [campaignDisplay, setCampaignDisplay] = useState<number | string>();
-    const [campaign, setCampaign] = useState<API.Campaign>();
-    const [reducedPrice, setReducedPrice] = useState<number>();
+    
+    const [campaign, setCampaign] = useState<CampaignState>({
+        display: null,
+        data: null,
+        reducedPrice: null
+    });
     const [isAdded, setIsAdded] = useState(false);
-    const [isHovered, setIsHovered] = useState(false);
     const [stockQuantity, setStockQuantity] = useState<number>(0);
+    const [imageLoaded, setImageLoaded] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
 
-        async function fetchCampaigns() {
-            if (!product?.price) return;
+        const fetchProductData = async () => {
+            if (!product?.price || !product?.id) return;
 
             try {
+                // Fetch stock information
                 const stock = await api.listStockBalance(1, `id:${product.id}`);
                 if (!isMounted) return;
-                
                 setStockQuantity(stock[0]?.quantity || 0);
 
-                const bestCampaign = await api.findBestCampaign(product.id!);
+                // Fetch campaign information
+                const bestCampaign = await api.findBestCampaign(product.id);
                 if (!isMounted || !bestCampaign) return;
 
-                setCampaign(bestCampaign);
-                setCampaignDisplay(
-                    bestCampaign["discount-rate"] ||
-                    bestCampaign.amount ||
-                    bestCampaign.name
-                );
-
-                switch (bestCampaign.type) {
-                    case "fixed-amount":
-                        setReducedPrice(product.price - bestCampaign.amount!);
-                        break;
-                    case "fixed-price":
-                        if (bestCampaign.rules[0].quantity > 1 || bestCampaign.rules.length > 1) {
-                            setCampaignDisplay(bestCampaign.name);
-                            break;
-                        }
-                        setReducedPrice(bestCampaign.amount);
-                        break;
-                    case "percentage":
-                        if (bestCampaign.rules[0].quantity > 1 || bestCampaign.rules.length > 1) {
-                            setCampaignDisplay(bestCampaign.name);
-                            break;
-                        }
-                        setReducedPrice(
-                            (1 - bestCampaign["discount-rate"]! / 100) * product.price
-                        );
-                        break;
-                }
+                const campaignState = calculateCampaignDetails(bestCampaign, product.price);
+                setCampaign(campaignState);
             } catch (error) {
-                console.error('Error fetching campaign data:', error);
+                console.error('Fel vid hämtning av produktdata:', error);
             }
+        };
+
+        fetchProductData();
+        return () => { isMounted = false; };
+    }, [product]);
+
+    const calculateCampaignDetails = (
+        campaignData: API.Campaign, 
+        productPrice: number
+    ): CampaignState => {
+        const state: CampaignState = {
+            display: null,
+            data: campaignData,
+            reducedPrice: null
+        };
+
+        state.display = campaignData['discount-rate'] || 
+                       campaignData.amount || 
+                       campaignData.name;
+
+        const hasComplexRules = campaignData.rules?.[0]?.quantity > 1 || 
+                               campaignData.rules?.length > 1;
+
+        switch (campaignData.type) {
+            case 'fixed-amount':
+                if (campaignData.amount) {
+                    state.reducedPrice = productPrice - campaignData.amount;
+                }
+                break;
+            case 'fixed-price':
+                if (hasComplexRules) {
+                    state.display = campaignData.name;
+                } else {
+                    state.reducedPrice = campaignData.amount || null;
+                }
+                break;
+            case 'percentage':
+                if (hasComplexRules) {
+                    state.display = campaignData.name;
+                } else if (campaignData['discount-rate']) {
+                    state.reducedPrice = productPrice * (1 - campaignData['discount-rate'] / 100);
+                }
+                break;
         }
 
-        fetchCampaigns();
-        return () => {
-            isMounted = false;
-        };
-    }, [productId, product]);
+        return state;
+    };
 
     const handleAddToCart = useCallback(() => {
-        if (isAdded || !product || !product.id) return;
+        if (isAdded || !product?.id || stockQuantity <= 0) return;
 
         dispatch({
-            type: "ADD_ITEM",
+            type: 'ADD_ITEM',
             payload: {
-                "product-name": product.name,
+                'product-name': product.name,
                 product: product.id,
                 quantity: 1,
                 price: product.price,
-                type: "goods",
-                "product-group": product["product-group"],
+                type: 'goods',
+                'product-group': product['product-group'],
             },
         });
 
         setIsAdded(true);
         setTimeout(() => setIsAdded(false), 1500);
-    }, [dispatch, product, isAdded]);
+    }, [dispatch, product, isAdded, stockQuantity]);
 
     if (loading || !product) {
         return (
-            <IonCard className="product-card-skeleton">
-                <div className="skeleton-image-container">
+            <IonCard className="product-card">
+                <div className="skeleton-container">
                     <IonSkeletonText animated className="skeleton-image" />
-                </div>
-                <IonCardHeader>
                     <IonSkeletonText animated className="skeleton-title" />
-                </IonCardHeader>
-                <IonCardContent>
                     <IonSkeletonText animated className="skeleton-price" />
                     <IonSkeletonText animated className="skeleton-button" />
-                </IonCardContent>
+                </div>
             </IonCard>
         );
     }
+
+    const getButtonColor = () => {
+        if (isAdded) return 'success';
+        if (stockQuantity <= 0) return 'medium';
+        return 'dark';
+    };
+
+    const getButtonIcon = () => {
+        if (isAdded) return checkmarkCircleOutline;
+        if (stockQuantity <= 0) return alertCircleOutline;
+        return cartOutline;
+    };
+
+    const getButtonText = () => {
+        if (loading) return 'Laddar...';
+        if (!product.price) return 'Ej tillgänglig';
+        if (isAdded) return 'Tillagd i kundvagn';
+        if (stockQuantity <= 0) return 'Tillfälligt slut';
+        return 'Lägg till i kundvagn';
+    };
 
     return (
         <motion.div
@@ -142,35 +177,33 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.1 }}
         >
-            <IonCard
-                className="product-card"
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
-            >
+            <IonCard className="product-card">
                 <div className="image-container">
                     <IonImg
                         src={product.description}
                         alt={product.name}
-                        className="product-image"
+                        className={`product-image ${imageLoaded ? 'fade-in' : ''}`}
+                        onIonImgDidLoad={() => setImageLoaded(true)}
                     />
+                    
                     {product.price && (
                         <motion.div
                             className="price-badge"
-                            animate={{ scale: isHovered ? 1.05 : 1 }}
+                            animate={{ scale: isAdded ? 1.05 : 1 }}
                             transition={{ duration: 0.2 }}
                         >
                             <IonText>
-                                {reducedPrice ? (
-                                    <div>
+                                {campaign.reducedPrice ? (
+                                    <>
                                         <span className="old-price">
                                             {product.price.toFixed(2)} kr
                                         </span>
-                                        <h3 className="reduced-price">
-                                            {reducedPrice.toFixed(2)} kr
+                                        <h3 className="current-price reduced-price">
+                                            {campaign.reducedPrice.toFixed(2)} kr
                                         </h3>
-                                    </div>
+                                    </>
                                 ) : (
-                                    <h3 className="price">
+                                    <h3 className="current-price">
                                         {product.price.toFixed(2)} kr
                                     </h3>
                                 )}
@@ -180,73 +213,64 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </div>
 
                 <AnimatePresence>
-                    {campaign?.type && campaignDisplay && (
+                    {campaign.data?.type && campaign.display && (
                         <motion.div
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.8 }}
-                            className="product-card-discount"
+                            className="discount-badge"
                         >
-                            {typeof campaignDisplay === "string"
-                                ? campaignDisplay
-                                : campaign?.type === "percentage"
-                                ? `-${campaignDisplay}%`
-                                : campaign?.type === "fixed-amount"
-                                ? `-${campaignDisplay}kr`
-                                : campaignDisplay}
+                            {typeof campaign.display === 'string'
+                                ? campaign.display
+                                : campaign.data?.type === 'percentage'
+                                ? `-${campaign.display}%`
+                                : campaign.data?.type === 'fixed-amount'
+                                ? `-${campaign.display}kr`
+                                : campaign.display}
                         </motion.div>
                     )}
                 </AnimatePresence>
 
-                <IonCardHeader>
-                    <IonCardTitle className="product-title">
-                        {product.name}
+                <IonCardContent className="product-content">
+                    <h3 className="product-title">{product.name}</h3>
+                    
+                    <div className="stock-info">
                         {stockQuantity > 0 ? (
-                            <IonCardSubtitle>
+                            <span className="in-stock">
                                 I lager: {stockQuantity}st
-                            </IonCardSubtitle>
+                            </span>
                         ) : (
-                            <IonCardSubtitle>Tillfälligt Slut</IonCardSubtitle>
+                            <span className="out-of-stock">
+                                Tillfälligt slut
+                            </span>
                         )}
-                    </IonCardTitle>
-                </IonCardHeader>
-
-                <IonCardContent>
-                    <div className="product-details">
-                        {product.unit && (
-                            <IonBadge className="unit-badge">
-                                per {product.unit}
-                            </IonBadge>
-                        )}
-
-                        <motion.div
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                        >
-                            <IonButton
-                                className="add-to-cart-button"
-                                expand="block"
-                                disabled={loading || !product.price || isAdded || stockQuantity === 0}
-                                onClick={handleAddToCart}
-                                color={isAdded ? "success" : undefined}
-                            >
-                                <IonIcon
-                                    icon={isAdded ? checkmarkCircleOutline : (product.price ? cartOutline : flashOutline)}
-                                    slot="start"
-                                />
-                                {loading
-                                    ? "Laddar..."
-                                    : !product.price
-                                    ? "Ej tillgänglig"
-                                    : isAdded
-                                    ? "Tillagd i kundvagn"
-                                    : "Lägg till i kundvagn"}
-                                <IonRippleEffect />
-                            </IonButton>
-                        </motion.div>
                     </div>
+
+                    {product.unit && (
+                        <IonBadge className="unit-badge">
+                            per {product.unit}
+                        </IonBadge>
+                    )}
+
+                    <IonButton
+                        className="cart-button"
+                        expand="block"
+                        disabled={loading || !product.price || isAdded || stockQuantity <= 0}
+                        onClick={handleAddToCart}
+                        color={getButtonColor()}
+                    >
+                        <IonIcon
+                            icon={getButtonIcon()}
+                            slot="start"
+                            aria-hidden="true"
+                        />
+                        {getButtonText()}
+                        <IonRippleEffect />
+                    </IonButton>
                 </IonCardContent>
             </IonCard>
         </motion.div>
     );
 };
+
+export default ProductCard;

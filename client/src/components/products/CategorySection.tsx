@@ -1,7 +1,7 @@
-import React, { memo } from 'react';
-import { IonIcon, IonBadge } from "@ionic/react";
+import React, { memo, useMemo } from 'react';
+import { IonIcon, IonBadge, IonRippleEffect } from "@ionic/react";
 import { motion } from "framer-motion";
-import { getIconForTab } from "../../utils/iconUtils";
+import { getIconForTab } from "../../utils/iconUtils";  
 import { ProductCard } from "./ProductCard";
 import { Category } from '../../types';
 
@@ -16,35 +16,70 @@ export const CategorySection = memo<CategorySectionProps>(({
     products,
     index,
 }) => {
-    const categoryIcon = getIconForTab(category.name);
+    const categoryIcon = useMemo(() => getIconForTab(category.name), [category.name]);
+    
+    const sectionVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { 
+            opacity: 1, 
+            y: 0,
+            transition: { 
+                duration: 0.4,
+                delay: index * 0.1,
+                ease: [0.4, 0, 0.2, 1]
+            }
+        }
+    };
+
+    const productVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1
+            }
+        }
+    };
 
     return (
         <motion.section
             className="category-section"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
+            initial="hidden"
+            animate="visible"
+            variants={sectionVariants}
+            role="region"
+            aria-label={`${category.name} kategori`}
         >
-            <div className="category-header">
+            <header className="category-header">
                 <div className="category-header-content">
-                    <IonIcon
-                        icon={categoryIcon}
-                        className="category-header-icon"
-                        aria-hidden="true"
-                    />
+                    <div className="category-header-icon-wrapper">
+                        <IonIcon
+                            icon={categoryIcon}
+                            className="category-header-icon"
+                            aria-hidden="true"
+                        />
+                        <IonRippleEffect />
+                    </div>
+                    
                     <div className="category-header-text">
                         <div className="category-header-title">
-                            <h3>{category.name}</h3>
-                            <IonBadge color="primary">
-                                {products.length} produkter
+                            <h2>{category.name}</h2>
+                            <IonBadge 
+                                color="primary"
+                                className="category-badge"
+                            >
+                                {products.length} {products.length === 1 ? 'produkt' : 'produkter'}
                             </IonBadge>
                         </div>
                     </div>
                 </div>
-            </div>
+            </header>
 
             <div className="category-products">
-                <div className="product-grid">
+                <motion.div 
+                    className="product-grid"
+                    variants={productVariants}
+                >
                     {products.map((productId, productIndex) => (
                         <ProductCard
                             key={productId}
@@ -52,7 +87,7 @@ export const CategorySection = memo<CategorySectionProps>(({
                             index={productIndex}
                         />
                     ))}
-                </div>
+                </motion.div>
             </div>
         </motion.section>
     );

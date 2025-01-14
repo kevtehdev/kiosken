@@ -3,33 +3,26 @@ import {
     IonPage,
     IonContent,
     IonList,
-    IonButton,
-    useIonToast,
     IonIcon,
-    IonSpinner,
+    useIonToast,
 } from "@ionic/react";
-import {
-    timeOutline,
-    mailOutline,
-    cardOutline,
-    documentTextOutline,
-    cartOutline,
-} from "ionicons/icons";
+import { cartOutline } from "ionicons/icons";
 import { useLocation } from "react-router-dom";
 import { useCart } from "../contexts/cartContext";
 import { CartItem } from "../components/cart/CartItem";
+import { CartActions } from "../components/cart/CartActions";
+import { CartSummary } from "../components/cart/CartSummary";
+import { DeliverySteps } from "../components/cart/DeliverySteps";
 import { UserList } from "../components/users/UserList";
 import { Header } from "../components/layout/Header";
 import { api } from "../services/api";
 import { Customer } from "../contexts/userContext";
 import { DeliveryDetails } from "../types";
-import "../styles/pages/Cart.css";
 import { API } from "@onslip/onslip-360-web-api";
 import { CartItemType } from "../types/payment.types";
+import "../styles/pages/Cart.css";
 
-// Huvudkomponent för varukorgen
 export default function Cart() {
-    // State-hantering
     const [deliveryLocation, setDeliveryLocation] = useState<Customer | undefined>();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { state, dispatch } = useCart();
@@ -38,7 +31,6 @@ export default function Cart() {
     const [totalDiscount, setTotalDiscount] = useState<number>(0);
     const location = useLocation();
 
-    // Hantera betalningsstatus från redirect
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const status = params.get("status");
@@ -64,7 +56,6 @@ export default function Cart() {
         }
     }, [location, dispatch, presentToast]);
 
-    // Beräkna totalsumma och rabatt
     useEffect(() => {
         const calculateTotal = async () => {
             if (state.items.length > 0) {
@@ -84,7 +75,6 @@ export default function Cart() {
         calculateTotal();
     }, [state.items]);
 
-    // Formatera orderdata för API
     const formatOrderItems = () => {
         return state.items
             .filter((item): item is CartItemType => 
@@ -100,7 +90,10 @@ export default function Cart() {
             }));
     };
 
-    // Hantera orderprocessen
+    const handleClearCart = () => {
+        dispatch({ type: "CLEAR_CART" });
+    };
+
     async function handleSendOrder() {
         if (!deliveryLocation || state.items.length === 0) return;
 
@@ -169,13 +162,12 @@ export default function Cart() {
         }
     }
 
-    // Rendering av komponenten
     return (
         <IonPage>
             <Header />
             <IonContent>
                 <div className="cart-container">
-                    {/* Sektion för val av leveransplats */}
+                    {/* Delivery Location Section */}
                     <section className="cart-section">
                         <div className="cart-section-header">
                             <h2 className="section-title">Välj leveransplats</h2>
@@ -185,7 +177,7 @@ export default function Cart() {
                         </div>
                     </section>
 
-                    {/* Varukorgssektion */}
+                    {/* Cart Items Section */}
                     <section className="cart-section">
                         <div className="cart-section-header">
                             <h2 className="section-title">Din varukorg</h2>
@@ -207,23 +199,10 @@ export default function Cart() {
                                             ))}
                                     </IonList>
 
-                                    <div className="cart-total">
-                                        <div className="cart-total-header">
-                                            <span className="cart-total-label">
-                                                Totalt att betala
-                                            </span>
-                                            <div className="cart-total-container">
-                                                {totalDiscount > 0 && (
-                                                    <span className="cart-total-discount">
-                                                        -{totalDiscount.toFixed(2)} kr
-                                                    </span>
-                                                )}
-                                                <span className="cart-total-amount">
-                                                    {total.toFixed(2)} kr
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <CartSummary
+                                        total={total}
+                                        totalDiscount={totalDiscount}
+                                    />
                                 </>
                             ) : (
                                 <div className="empty-cart">
@@ -242,7 +221,6 @@ export default function Cart() {
                         </div>
                     </section>
 
-                    {/* Leveransinformation och knappar */}
                     {state.items.length > 0 && (
                         <>
                             <section className="cart-section">
@@ -250,56 +228,18 @@ export default function Cart() {
                                     <h2 className="section-title">Om leveransprocessen</h2>
                                 </div>
                                 <div className="cart-section-content">
-                                    <ul className="delivery-steps">
-                                        <li className="delivery-step">
-                                            <IonIcon icon={timeOutline} className="step-icon" />
-                                            <span>Din beställning skickas direkt till vår dedikerade leveranspersonal</span>
-                                        </li>
-                                        <li className="delivery-step">
-                                            <IonIcon icon={cardOutline} className="step-icon" />
-                                            <span>Säker betalning via Viva Payments</span>
-                                        </li>
-                                        <li className="delivery-step">
-                                            <IonIcon icon={mailOutline} className="step-icon" />
-                                            <span>Du får orderbekräftelse och kvitto via e-post</span>
-                                        </li>
-                                        <li className="delivery-step">
-                                            <IonIcon icon={documentTextOutline} className="step-icon" />
-                                            <span>Din order levereras till vald leveransplats</span>
-                                        </li>
-                                    </ul>
+                                    <DeliverySteps />
                                 </div>
                             </section>
 
-                            <div className="cart-actions">
-                                <IonButton
-                                    expand="block"
-                                    className="action-button"
-                                    color="danger"
-                                    onClick={() => dispatch({ type: "CLEAR_CART" })}
-                                    disabled={isSubmitting}
-                                >
-                                    Rensa varukorg
-                                </IonButton>
-
-                                <IonButton
-                                    expand="block"
-                                    className="action-button"
-                                    onClick={handleSendOrder}
-                                    disabled={!deliveryLocation || state.items.length === 0 || isSubmitting}
-                                >
-                                    {isSubmitting ? (
-                                        <div className="loading-spinner">
-                                            <IonSpinner name="crescent" />
-                                            <span>Förbereder betalning...</span>
-                                        </div>
-                                    ) : !deliveryLocation ? (
-                                        "Välj leveransplats först"
-                                    ) : (
-                                        `Gå till betalning (${total.toFixed(2)} kr)`
-                                    )}
-                                </IonButton>
-                            </div>
+                            <CartActions
+                                isSubmitting={isSubmitting}
+                                hasDeliveryLocation={!!deliveryLocation}
+                                itemsCount={state.items.length}
+                                total={total}
+                                onClearCart={handleClearCart}
+                                onSendOrder={handleSendOrder}
+                            />
                         </>
                     )}
                 </div>

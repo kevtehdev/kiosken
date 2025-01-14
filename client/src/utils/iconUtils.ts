@@ -1,23 +1,27 @@
 import { 
-    fastFoodOutline, 
-    pizzaOutline, 
-    beerOutline, 
-    cafeOutline,
-    wineOutline,
+    iceCreamOutline,
     restaurantOutline,
-    basketOutline
+    beerOutline,
+    bagHandleOutline,
+    fastFoodOutline,
+    cartOutline
 } from 'ionicons/icons';
 
-const categoryIcons: Record<string, string> = {
-    'Mat': fastFoodOutline,
-    'Pizza': pizzaOutline,
-    'Öl': beerOutline,
-    'Kaffe': cafeOutline,
-    'Vin': wineOutline,
-    'Lunch': restaurantOutline,
-    'default': basketOutline
-};
-
 export const getIconForTab = (name: string): string => {
-    return categoryIcons[name] || categoryIcons.default;
+    const normalizedName = name.toLowerCase();
+    
+    const iconMap: Record<string, string> = {
+        glass: iceCreamOutline,
+        godis: bagHandleOutline,
+        snacks: bagHandleOutline,
+        dryck: beerOutline,
+        läsk: beerOutline,
+        frukost: fastFoodOutline,
+        mackor: fastFoodOutline,
+        lunch: restaurantOutline,
+        mat: restaurantOutline,
+    };
+
+    return Object.entries(iconMap).find(([key]) => 
+        normalizedName.includes(key))?.[1] || cartOutline;
 };
