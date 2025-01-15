@@ -5,17 +5,14 @@ import { logger } from "../utils/logger";
 
 const router = Router();
 
-// Process payment
 router.post("/process", validateSession, PaymentController.processPayment);
 
-// Check payment status
 router.get(
     "/status/:transactionId",
     validateSession,
     PaymentController.checkPaymentStatus
 );
 
-// Payment webhook endpoint
 router.post("/webhook", PaymentController.handleWebhook);
 
 export default router;

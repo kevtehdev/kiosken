@@ -81,7 +81,6 @@ class PaymentService {
             }
 
             const amountInCents = Math.round(amount * 100);
-            // Använd smart checkout endpoint
             const apiUrl = `${this.config.baseUrl}/checkout/v2/orders`;
 
             const payload: PaymentOrder = {
@@ -111,7 +110,7 @@ class PaymentService {
             console.log("Creating order with payload:", payload);
             console.log("Using headers:", {
                 ...this.getHeaders(),
-                Authorization: "Bearer ****", // Dölj credentials i loggen
+                Authorization: "Bearer ****", 
             });
 
             const response = await fetch(apiUrl, {

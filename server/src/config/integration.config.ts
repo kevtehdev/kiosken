@@ -46,7 +46,6 @@ export const integrationConfig: {
             "show-labels",
         ],
 
-        // Features måste vara tomma eller innehålla bara de features som är explicit definierade i API:et
         features: ["campaigns", "stock-balances", "external-journal"],
 
         confinements: ["location"],
@@ -54,3 +53,4 @@ export const integrationConfig: {
         "oauth-redirect-uris": ["http://localhost:3000/api/oauth/callback"],
     },
 };
+

@@ -7,15 +7,9 @@ import { ApplicationError, ErrorCode } from '../middleware/error.middleware';
 
 const router = Router();
 
-/**
- * OAuth routes
- */
 router.get('/authorize', validateSession, oauthController.authorize);
 router.get('/callback', validateSession, oauthController.callback);
 
-/**
- * Registering route
- */
 router.post('/register', validateSession, async (req, res, next) => {
     try {
         const result = await OnslipService.registerIntegration();

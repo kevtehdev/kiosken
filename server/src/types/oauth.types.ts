@@ -5,14 +5,14 @@ export interface OAuthAuthorizationResponse {
 }
 
 export interface OAuthTokenResponse {
-    token_type: string;      // Always 'Hawk'
-    access_token: string;    // The Hawk key identifier
-    secret: string;         // The Hawk key secret
-    algorithm: string;      // Always 'sha256'
-    realm: string;         // The realm/company alias
-    scope?: string;        // Space-separated list of granted permissions
-    journal?: number;      // ID of external journal if applicable
-    location?: number;     // ID of location if token is location-bound
+    token_type: string;     
+    access_token: string;   
+    secret: string;        
+    algorithm: string;     
+    realm: string;        
+    scope?: string;        
+    journal?: number;      
+    location?: number;     
 }
 
 export interface OAuthSessionData {
@@ -25,7 +25,6 @@ export interface PKCEPair {
     codeVerifier: string;
 }
 
-// För att utöka express-session med våra egna typer
 declare module 'express-session' {
     interface SessionData {
         oauth?: OAuthSessionData;

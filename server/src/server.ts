@@ -6,9 +6,6 @@ import { promisify } from "util";
 
 const server = createServer(app);
 
-/**
- * Validera miljövariabler och andra krav
- */
 const validateEnvironment = () => {
     const requiredVars = [
         "NODE_ENV",
@@ -24,7 +21,6 @@ const validateEnvironment = () => {
         throw new Error(`Saknade miljövariabler: ${missingVars.join(", ")}`);
     }
 
-    // Validera kritiska konfigurationer
     if (env.nodeEnv === "production") {
         if (
             !process.env.SESSION_SECRET ||
@@ -37,9 +33,6 @@ const validateEnvironment = () => {
     }
 };
 
-/**
- * Hantera oväntade fel
- */
 const setupErrorHandlers = () => {
     process.on("uncaughtException", (error) => {
         logger.error("Ohanterat undantag:", error);
@@ -61,14 +54,10 @@ const setupErrorHandlers = () => {
     });
 };
 
-/**
- * Graceful shutdown
- */
 const gracefulShutdown = async (code: number) => {
     logger.info("Påbörjar graceful shutdown...");
 
     try {
-        // Stoppa server från att ta emot nya anslutningar
         server.close(async () => {
             logger.info("Server stängd");
 
@@ -79,7 +68,6 @@ const gracefulShutdown = async (code: number) => {
             process.exit(code);
         });
 
-        // Sätt timeout för shutdown
         setTimeout(() => {
             logger.error(
                 "Kunde inte stänga ner gracefully, forcerar avstängning"
@@ -92,9 +80,6 @@ const gracefulShutdown = async (code: number) => {
     }
 };
 
-/**
- * Starta servern
- */
 const start = async () => {
     try {
         validateEnvironment();
@@ -123,5 +108,4 @@ const start = async () => {
     }
 };
 
-// Starta applikationen
 start();

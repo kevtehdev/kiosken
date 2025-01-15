@@ -101,9 +101,6 @@ export class OnslipService {
         );
     }
 
-    /**
-     * Registrerar integrationen med Onslip
-     */
     async registerIntegration(): Promise<API.Integration> {
         try {
             console.log(
@@ -516,9 +513,6 @@ export class OnslipService {
         );
     }
 
-    /**
-     * Genererar en auktoriserings-URL med PKCE
-     */
     public async generateAuthorizationUrl(): Promise<{
         authorizationUrl: string;
         codeVerifier: string;
@@ -550,9 +544,6 @@ export class OnslipService {
         }
     }
 
-    /**
-     * Byter ut auktoriseringskoden mot en access token
-     */
     public async exchangeCodeForToken(
         code: string,
         codeVerifier: string
@@ -604,9 +595,6 @@ export class OnslipService {
         }
     }
 
-    /**
-     * Verifierar att en token är giltig
-     */
     public async verifyToken(token: OAuthTokenResponse): Promise<boolean> {
         try {
             console.log("Verifying token validity...");
