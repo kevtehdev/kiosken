@@ -6,20 +6,17 @@ import { api } from "../services/api";
 import { motion, AnimatePresence } from "framer-motion";
 import "../styles/pages/Confirmation.css";
 
-// Huvudkomponent för orderbekräftelse
 export default function ConfirmationPage() {
-    // State-hantering
+
     const [status, setStatus] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Hämta URL-parametrar
     const searchParams = new URLSearchParams(window.location.search);
     const transactionID = searchParams.get("t");
     const orderID = searchParams.get("s");
     const eventID = searchParams.get("eventId");
 
-    // Verifiera betalning vid sidladdning
     useEffect(() => {
         async function verify() {
             if (!transactionID) {
@@ -41,7 +38,6 @@ export default function ConfirmationPage() {
         verify();
     }, [transactionID]);
 
-    // Hantera rendering av olika tillstånd
     const renderContent = () => {
         if (loading) {
             return (
@@ -97,19 +93,16 @@ export default function ConfirmationPage() {
         );
     };
 
-    // Rendering av huvudkomponenten
     return (
         <IonPage>
             <Header />
             <IonContent>
                 <div className="confirmation-container">
                     <div className="confirmation-card">
-                        {/* Animerad visning av aktuellt tillstånd */}
                         <AnimatePresence mode="wait">
                             {renderContent()}
                         </AnimatePresence>
 
-                        {/* Sektion för orderdetaljer */}
                         <motion.div 
                             className="details-section"
                             initial={{ opacity: 0 }}
@@ -132,7 +125,6 @@ export default function ConfirmationPage() {
                             </div>
                         </motion.div>
 
-                        {/* Navigeringsknappar */}
                         <motion.div 
                             className="confirmation-actions"
                             initial={{ opacity: 0, y: 20 }}

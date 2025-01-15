@@ -107,7 +107,6 @@ const TabPage: React.FC = () => {
     const filteredProducts = useMemo((): FilteredProductsResult => {
         if (!buttonMaps || !id) return { products: [], name: "" };
 
-        // Konvertera ID till number och hitta exakt matchning
         const numericId = parseInt(id);
         const buttonMap = buttonMaps.find(map => map.id === numericId);
 
@@ -122,7 +121,6 @@ const TabPage: React.FC = () => {
             .filter(button => button.product !== undefined && button.product !== null)
             .map(button => button.product!);
 
-        // Apply stock filter
         if (filters.hideOutOfStock && stock?.length) {
             products = products.filter((productId) => {
                 const stockItem = stock.find(item => item.id === productId);
@@ -130,7 +128,6 @@ const TabPage: React.FC = () => {
             });
         }
 
-        // Apply discount filter
         if (filters.onlyShowDiscounts) {
             products = products.filter((productId) => {
                 const product = productData[productId] as ExtendedProduct;
@@ -140,7 +137,6 @@ const TabPage: React.FC = () => {
             });
         }
 
-        // Apply sorting
         if (filters.sortOrder !== "none" && products.length > 0) {
             products = sortProducts(products, productData, filters.sortOrder);
         }

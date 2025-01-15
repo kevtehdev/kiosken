@@ -31,28 +31,24 @@ export interface PaymentResult {
 }
 
 export const api = {
-    // Products & Buttons
     getProducts: async () => {
         const response = await fetch(`${API_URL}/buttons/api-data`);
         if (!response.ok) throw new Error("Kunde inte hämta produkter");
         return response.json();
     },
 
-    // Customers
     getCustomers: async () => {
         const response = await fetch(`${API_URL}/customers`);
         if (!response.ok) throw new Error("Kunde inte hämta kunder");
         return response.json();
     },
 
-    // Resources
     getResources: async () => {
         const response = await fetch(`${API_URL}/resources`);
         if (!response.ok) throw new Error("Kunde inte hämta resurser");
         return response.json();
     },
 
-    // Campaigns
     getCampaigns: async () => {
         const response = await fetch(`${API_URL}/campaigns`);
         if (!response.ok) throw new Error("Kunde inte hämta kampanjer");
@@ -75,7 +71,6 @@ export const api = {
         return response.json();
     },
 
-    // Payment Processing
     processPayment: async (data: PaymentRequest): Promise<PaymentResult> => {
         try {
             console.log("Sending payment request:", data);
@@ -172,7 +167,6 @@ export const api = {
         return total;
     },
 
-    // Delivery
     sendDeliveryNotification: async (deliveryDetails: any) => {
         const response = await fetch(`${API_URL}/delivery/notifications`, {
             method: "POST",

@@ -20,20 +20,14 @@ import CredentialsDisplay, {
 } from "../components/config/CredentialsDisplay";
 import "../styles/pages/Config.css";
 
-// Huvudkomponent för konfigurationssidan
 const Config: React.FC = () => {
-    // State-hantering
-    const [status, setStatus] = useState<
-        "idle" | "loading" | "success" | "error"
-    >("idle");
-    const [credentials, setCredentials] = useState<OnslipCredentials | null>(
-        null
-    );
+
+    const [status, setStatus] = useState <"idle" | "loading" | "success" | "error">("idle");
+    const [credentials, setCredentials] = useState<OnslipCredentials | null>(null);
     const location = useLocation();
     const [presentToast] = useIonToast();
     const api = useApi();
 
-    // Hantera OAuth callback och parametrar
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
         const success = searchParams.get("success");
@@ -71,7 +65,6 @@ const Config: React.FC = () => {
         }
     }, [location, presentToast]);
 
-    // Hantera Onslip-anslutning
     const handleOnslipConnect = async () => {
         try {
             setStatus("loading");
@@ -100,7 +93,6 @@ const Config: React.FC = () => {
         }
     };
 
-    // Rendera innehåll baserat på status
     const renderContent = () => {
         if (status === "success" && credentials) {
             return (
@@ -163,7 +155,6 @@ const Config: React.FC = () => {
         );
     };
 
-    // Rendering av huvudkomponenten
     return (
         <IonPage>
             <Header />

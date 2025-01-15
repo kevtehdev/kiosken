@@ -54,7 +54,6 @@ export default function Campaign() {
         return campaigns.map(campaign => {
             let productIds = campaign.rules.flatMap(rule => rule.products);
 
-            // Apply stock filter
             if (filters.hideOutOfStock && stock?.length) {
                 productIds = productIds.filter((productId) => {
                     const stockItem = stock.find(item => item.id === productId);
@@ -62,7 +61,6 @@ export default function Campaign() {
                 });
             }
 
-            // Apply discount filter
             if (filters.onlyShowDiscounts) {
                 productIds = productIds.filter((productId) => {
                     const product = productData[productId];
@@ -72,12 +70,10 @@ export default function Campaign() {
                 });
             }
 
-            // Apply sorting
             if (filters.sortOrder !== "none" && productIds.length > 0) {
                 productIds = sortProducts(productIds, productData, filters.sortOrder);
             }
 
-            // Create a new campaign object with filtered products in rules
             const filteredCampaign: CampaignType = {
                 ...campaign,
                 rules: [{

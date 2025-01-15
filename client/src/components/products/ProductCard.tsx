@@ -57,12 +57,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             if (!product?.price || !product?.id) return;
 
             try {
-                // Fetch stock information
                 const stock = await api.listStockBalance(1, `id:${product.id}`);
                 if (!isMounted) return;
                 setStockQuantity(stock[0]?.quantity || 0);
 
-                // Fetch campaign information
                 const bestCampaign = await api.findBestCampaign(product.id);
                 if (!isMounted || !bestCampaign) return;
 
