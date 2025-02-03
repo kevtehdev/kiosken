@@ -59,7 +59,11 @@ const TabsContainer: React.FC = () => {
                 <Route exact path="/cart" component={Cart} />
                 <Route exact path="/campaigns" component={Campaign} />
                 <Route exact path="/config" component={Config} />
-                <Route exact path="/confirmation" component={ConfirmationPage} />
+                <Route
+                    exact
+                    path="/confirmation"
+                    component={ConfirmationPage}
+                />
             </IonRouterOutlet>
             <TabBar buttonMaps={buttonMaps} />
         </IonTabs>
@@ -75,7 +79,10 @@ const App: React.FC = () => {
                         <FilterProvider>
                             <IonReactRouter>
                                 <IonRouterOutlet>
-                                    <Route path="/" render={() => <TabsContainer />} />
+                                    <Route
+                                        path="/"
+                                        render={() => <TabsContainer />}
+                                    />
                                 </IonRouterOutlet>
                             </IonReactRouter>
                         </FilterProvider>
