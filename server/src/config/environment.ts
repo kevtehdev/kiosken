@@ -22,6 +22,7 @@ interface Environment {
         apiKey: string;
         merchantId: string;
         apiUrl: string;
+        apiUrlAccount: string;
         sourceCode: string;
     };
     cors: {
@@ -55,7 +56,10 @@ export const env: Environment = {
     viva: {
         merchantId: process.env.VIVA_MERCHANT_ID || "",
         apiKey: process.env.VIVA_API_KEY || "",
-        apiUrl: process.env.VIVA_API_URL || "https://api.vivapayments.com",
+        apiUrl: process.env.VIVA_API_URL || "https://demo-api.vivapayments.com",
+        apiUrlAccount:
+            process.env.VIVA_API_URL_ACCOUNT ||
+            "https://demo-account.vivapayments.com",
         sourceCode: process.env.VIVA_SOURCE_CODE || "Default",
     },
     cors: {
