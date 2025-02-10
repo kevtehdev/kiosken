@@ -37,7 +37,7 @@ class PaymentService {
         console.log("Setting bearer token");
 
         const response = await fetch(
-            "https://demo-accounts.vivapayments.com/connect/token",
+            `${env.viva.apiUrlAccount}/connect/token`,
             {
                 method: "POST",
                 headers: this.getHeaders(),
@@ -110,7 +110,7 @@ class PaymentService {
             console.log("Creating order with payload:", payload);
             console.log("Using headers:", {
                 ...this.getHeaders(),
-                Authorization: "Bearer ****", 
+                Authorization: "Bearer ****",
             });
 
             const response = await fetch(apiUrl, {
@@ -178,7 +178,7 @@ class PaymentService {
         console.log("Transaction ID:", transactionId);
 
         try {
-            const url = `https://demo-api.vivapayments.com/checkout/v2/transactions/${transactionId}`;
+            const url = `${env.viva.apiUrl}/checkout/v2/transactions/${transactionId}`;
 
             const response = await fetch(url, {
                 method: "GET",

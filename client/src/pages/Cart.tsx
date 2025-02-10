@@ -23,7 +23,9 @@ import { CartItemType } from "../types/payment.types";
 import "../styles/pages/Cart.css";
 
 export default function Cart() {
-    const [deliveryLocation, setDeliveryLocation] = useState<Customer | undefined>();
+    const [deliveryLocation, setDeliveryLocation] = useState<
+        Customer | undefined
+    >();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { state, dispatch } = useCart();
     const [presentToast] = useIonToast();
@@ -59,7 +61,9 @@ export default function Cart() {
     useEffect(() => {
         const calculateTotal = async () => {
             if (state.items.length > 0) {
-                const calculatedTotal = await api.calcDiscountedTotal(state.items);
+                const calculatedTotal = await api.calcDiscountedTotal(
+                    state.items
+                );
                 const totalWithoutDiscount = state.items.reduce(
                     (sum, item) => sum + (item.price || 0) * item.quantity,
                     0
@@ -77,9 +81,10 @@ export default function Cart() {
 
     const formatOrderItems = () => {
         return state.items
-            .filter((item): item is CartItemType => 
-                item.product !== undefined && 
-                typeof item.product === 'number'
+            .filter(
+                (item): item is CartItemType =>
+                    item.product !== undefined &&
+                    typeof item.product === "number"
             )
             .map((item) => ({
                 id: item.product.toString(),
@@ -113,9 +118,9 @@ export default function Cart() {
             };
 
             const validItems = state.items.filter(
-                (item): item is CartItemType => 
-                item.product !== undefined && 
-                typeof item.product === 'number'
+                (item): item is CartItemType =>
+                    item.product !== undefined &&
+                    typeof item.product === "number"
             );
 
             const order: API.Order = {
@@ -141,18 +146,23 @@ export default function Cart() {
             const response = await api.processPayment(paymentRequest);
 
             if (response.status === "failed") {
-                throw new Error(response.message || "Betalningen kunde inte initieras");
+                throw new Error(
+                    response.message || "Betalningen kunde inte initieras"
+                );
             }
 
             if (response.transactionId) {
-                window.location.href = `https://demo.vivapayments.com/web2?ref=${response.transactionId}`;
+                window.location.href = `${
+                    import.meta.env.VITE_VIVA_URL
+                }/web2?ref=${response.transactionId}`;
             } else {
                 throw new Error("Ingen checkout-URL mottagen");
             }
         } catch (error) {
             console.error("Ett fel uppstod:", error);
             await presentToast({
-                message: error instanceof Error ? error.message : "Ett fel uppstod",
+                message:
+                    error instanceof Error ? error.message : "Ett fel uppstod",
                 duration: 3000,
                 position: "bottom",
                 color: "danger",
@@ -170,7 +180,9 @@ export default function Cart() {
                     {/* Delivery Location Section */}
                     <section className="cart-section">
                         <div className="cart-section-header">
-                            <h2 className="section-title">Välj leveransplats</h2>
+                            <h2 className="section-title">
+                                Välj leveransplats
+                            </h2>
                         </div>
                         <div className="cart-section-content">
                             <UserList onCustomerSelect={setDeliveryLocation} />
@@ -187,9 +199,12 @@ export default function Cart() {
                                 <>
                                     <IonList className="cart-list">
                                         {state.items
-                                            .filter((item): item is CartItemType => 
-                                                item.product !== undefined && 
-                                                typeof item.product === 'number'
+                                            .filter(
+                                                (item): item is CartItemType =>
+                                                    item.product !==
+                                                        undefined &&
+                                                    typeof item.product ===
+                                                        "number"
                                             )
                                             .map((item) => (
                                                 <CartItem
@@ -214,7 +229,8 @@ export default function Cart() {
                                         Din varukorg är tom
                                     </h3>
                                     <p className="empty-cart-subtext">
-                                        Lägg till produkter för att komma igång med din beställning
+                                        Lägg till produkter för att komma igång
+                                        med din beställning
                                     </p>
                                 </div>
                             )}
@@ -225,7 +241,9 @@ export default function Cart() {
                         <>
                             <section className="cart-section">
                                 <div className="cart-section-header">
-                                    <h2 className="section-title">Om leveransprocessen</h2>
+                                    <h2 className="section-title">
+                                        Om leveransprocessen
+                                    </h2>
                                 </div>
                                 <div className="cart-section-content">
                                     <DeliverySteps />
@@ -247,4 +265,3 @@ export default function Cart() {
         </IonPage>
     );
 }
-

@@ -13,6 +13,9 @@ RUN npm install
 # Copy the rest of the application code
 COPY . .
 
+ARG VITE_VIVA_URL
+ENV VITE_VIVA_URL=$VITE_VIVA_URL
+
 # Build the application
 RUN npm run build
 
