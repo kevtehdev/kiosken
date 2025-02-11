@@ -19,14 +19,14 @@ import { EmptyState } from "../components/common/EmptyState";
 import { CategorySection } from "../components/products/CategorySection";
 import { useStock } from "../hooks/useStock";
 import { MESSAGES } from "../constants/messages";
-import { API } from '@onslip/onslip-360-web-api';
+import { API } from "@onslip/onslip-360-web-api";
 import { Category } from "../types";
 import { sortProducts } from "../utils/sortUtils";
 import "../styles/pages/Home.css";
 
 type ProductWithDiscount = API.Product & {
-    'discount-price'?: number;
-}
+    "discount-price"?: number;
+};
 
 type ExtendedProduct = ProductWithDiscount;
 
@@ -62,7 +62,9 @@ const Home: React.FC = () => {
                 result[id] = {
                     ...product,
                     id,
-                    'discount-price': (product as ProductWithDiscount)['discount-price']
+                    "discount-price": (product as ProductWithDiscount)[
+                        "discount-price"
+                    ],
                 };
             }
         }
@@ -76,29 +78,41 @@ const Home: React.FC = () => {
         }
 
         return buttonMaps
-            .filter((map) => map.type === "tablet-buttons" && map.buttons?.length > 0)
+            .filter((map) => map.buttons?.length > 0)
             .map((map) => {
                 const category = processButtonMap(map);
                 let filteredProducts = [...category.products];
 
                 if (filters.hideOutOfStock && stock?.length) {
                     filteredProducts = filteredProducts.filter((productId) => {
-                        const stockItem = stock.find(item => item.id === productId);
-                        return stockItem?.quantity !== undefined && stockItem.quantity > 0;
+                        const stockItem = stock.find(
+                            (item) => item.id === productId
+                        );
+                        return (
+                            stockItem?.quantity !== undefined &&
+                            stockItem.quantity > 0
+                        );
                     });
                 }
 
                 if (filters.onlyShowDiscounts) {
                     filteredProducts = filteredProducts.filter((productId) => {
-                        const product = productData[productId] as ExtendedProduct;
-                        return product && 
-                            typeof product['discount-price'] === 'number' && 
-                            product['discount-price'] > 0;
+                        const product = productData[
+                            productId
+                        ] as ExtendedProduct;
+                        return (
+                            product &&
+                            typeof product["discount-price"] === "number" &&
+                            product["discount-price"] > 0
+                        );
                     });
                 }
 
                 let sortedProducts = filteredProducts;
-                if (filters.sortOrder !== "none" && filteredProducts.length > 0) {
+                if (
+                    filters.sortOrder !== "none" &&
+                    filteredProducts.length > 0
+                ) {
                     sortedProducts = sortProducts(
                         filteredProducts,
                         productData,

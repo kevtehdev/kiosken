@@ -44,8 +44,8 @@ export class OnslipService {
     }
 
     // API Methods
-    async listButtonMaps() {
-        return await OnslipService.instance.api.listButtonMaps();
+    async listButtonMaps(query?: string) {
+        return await OnslipService.instance.api.listButtonMaps(query);
     }
 
     async listProducts() {

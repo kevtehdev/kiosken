@@ -1,14 +1,9 @@
-import React from 'react';
-import {
-    IonTabBar,
-    IonTabButton,
-    IonIcon,
-    IonLabel,
-} from '@ionic/react';
-import { useLocation } from 'react-router-dom';
-import { API } from '@onslip/onslip-360-web-api';
-import { getIconForTab } from '../../utils/iconUtils';
-import '../../styles/components/layout/TabBar.css';
+import React from "react";
+import { IonTabBar, IonTabButton, IonIcon, IonLabel } from "@ionic/react";
+import { useLocation } from "react-router-dom";
+import { API } from "@onslip/onslip-360-web-api";
+import { getIconForTab } from "../../utils/iconUtils";
+import "../../styles/components/layout/TabBar.css";
 
 interface TabBarProps {
     buttonMaps: API.ButtonMap[];
@@ -16,13 +11,13 @@ interface TabBarProps {
 
 export const TabBar: React.FC<TabBarProps> = ({ buttonMaps }) => {
     const location = useLocation();
-    const currentId = location.pathname.split('/').pop();
+    const currentId = location.pathname.split("/").pop();
 
-    const filteredMaps = buttonMaps.filter(map => 
-        map.type === 'tablet-buttons' && 
-        Array.isArray(map.buttons) && 
-        map.buttons.length > 0 && 
-        map.id !== undefined
+    const filteredMaps = buttonMaps.filter(
+        (map) =>
+            Array.isArray(map.buttons) &&
+            map.buttons.length > 0 &&
+            map.id !== undefined
     );
 
     return (
@@ -30,7 +25,7 @@ export const TabBar: React.FC<TabBarProps> = ({ buttonMaps }) => {
             {filteredMaps.map((buttonMap) => {
                 const isSelected = currentId === buttonMap.id?.toString();
                 const icon = getIconForTab(buttonMap.name);
-                
+
                 return (
                     <IonTabButton
                         key={buttonMap.id}
@@ -39,10 +34,7 @@ export const TabBar: React.FC<TabBarProps> = ({ buttonMaps }) => {
                         selected={isSelected}
                         className="tab-button"
                     >
-                        <IonIcon 
-                            icon={icon}
-                            aria-hidden="true"
-                        />
+                        <IonIcon icon={icon} aria-hidden="true" />
                         <IonLabel>{buttonMap.name}</IonLabel>
                     </IonTabButton>
                 );

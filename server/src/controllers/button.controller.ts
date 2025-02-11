@@ -12,7 +12,6 @@ export class ButtonController {
     getButtonMaps = async (req: Request, res: Response) => {
         try {
             const buttonMaps = await this.onslipService.listButtonMaps();
-            console.log(buttonMaps);
 
             const tabletButtons = buttonMaps.filter(
                 (map: ButtonMap) =>
@@ -36,11 +35,16 @@ export class ButtonController {
                 this.onslipService.listProducts(),
             ]);
 
-            const tabletButtons = buttonMapsResponse.filter(
-                (map: ButtonMap) =>
-                    map.type === "tablet-buttons" &&
-                    map.buttons &&
-                    map.buttons.length > 0
+            const buttonMap = buttonMapsResponse.filter((maps) => {
+                return maps.name === "Glassar";
+            })[0];
+
+            const buttons = buttonMap.buttons.map(
+                (button) => button["button-map"]
+            );
+
+            const tabletButtons = buttonMapsResponse.filter((map) =>
+                buttons.includes(map.id)
             );
 
             const productsMap = productsResponse.reduce(
